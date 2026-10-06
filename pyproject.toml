@@ -1,0 +1,53 @@
+[project]
+name = "dataviz"
+version = "0.1.0"
+description = "DataVIZ Studio: authoring y consumo de dashboards agent-native con publicación gobernada"
+requires-python = ">=3.11,<3.15"
+readme = "README.md"
+
+dependencies = [
+    "pandas>=3.0",
+    "pyarrow>=18.0",
+    "pydantic>=2.13",
+    "lxml>=6.0",
+    "sqlglot>=30.0",
+    "lark>=1.2",
+    "python-dotenv>=1.0",
+    "pyjwt[crypto]>=2.15",
+    "msal>=1.20",
+    "boto3>=1.42",
+    "requests>=2.31",
+    "statsmodels>=0.15.0,<0.16",
+    "tableauhyperapi>=0.0.26700",
+    "pythonnet>=3.2",
+    "psycopg2-binary>=2.9",
+    "starlette>=0.47",
+    "uvicorn>=0.34",
+    "mcp>=2.2",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0",
+    "ruff>=0.16",
+]
+
+[tool.setuptools]
+packages = ["core"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+cache-dir = ".cache/ruff"
+
+[tool.ruff.lint]
+select = [
+    "E",
+    "W",
+    "F",
+    "I",
+    "UP",
+]
+ignore = [
+    "E501",
+]

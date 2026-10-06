@@ -1,0 +1,804 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   DataVIZ · Landing "journal" — notas de campo sobre papel cálido.
+   Canvas #f2f8f7, superficies mint/blush/foam, FLAT (sin sombras),
+   acción única teal #1c5d5f. Serif literario + mono para eyebrows.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.dvj-journal {
+  --dvj-canvas: #f2f8f7;
+  --dvj-ink: #283338;
+  --dvj-teal: #1c5d5f;
+  --dvj-teal-hover: #156152;
+  --dvj-navy: #16325a;
+  --dvj-mint: #e4f0f1;
+  --dvj-blush: #f2e8e2;
+  --dvj-foam: #cae1e2;
+  --dvj-rose: #d6aec1;
+  --dvj-sand: #9c7a52;
+  --dvj-cream: #f8ebe0;
+  --dvj-ghost: #0e4749;
+  --dvj-meta: #777b86;
+  --dvj-radius-card: 12px;
+  --dvj-shell: 1200px;
+  --dvj-rhythm: 88px;
+
+  min-height: 100vh;
+  background: var(--dvj-canvas);
+  color: var(--dvj-ink);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI Variable', 'Segoe UI',
+    Roboto, Helvetica, Arial, sans-serif;
+  font-size: 17px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+
+.dvj-journal *,
+.dvj-journal *::before,
+.dvj-journal *::after {
+  box-sizing: border-box;
+}
+
+/* Sin sombras en ningún descendiente: la profundidad es sólo fondo + hairline. */
+.dvj-journal :where(*) {
+  text-shadow: none;
+  box-shadow: none;
+}
+
+.dvj-journal a {
+  color: inherit;
+}
+
+.dvj-journal :focus-visible {
+  outline: 2px solid var(--dvj-teal);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+.dvj-shell {
+  max-width: var(--dvj-shell);
+  margin: 0 auto;
+  padding-inline: 40px;
+}
+
+@media (max-width: 680px) {
+  .dvj-shell {
+    padding-inline: 20px;
+  }
+}
+
+/* ── Eyebrow mono con dot ─────────────────────────────────────────────── */
+
+.dvj-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.dvj-journal:not(.dvj-reduced) .dvj-dot {
+  animation: dvj-pulse 2.8s ease-in-out infinite;
+}
+
+@keyframes dvj-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.55;
+    transform: scale(0.82);
+  }
+}
+
+.dvj-dot--teal {
+  background: var(--dvj-teal);
+}
+.dvj-dot--navy {
+  background: var(--dvj-navy);
+}
+.dvj-dot--rose {
+  background: var(--dvj-rose);
+}
+
+.dvj-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 28px;
+  font-family: ui-monospace, 'SFMono-Regular', 'Cascadia Mono', Menlo, Consolas,
+    monospace;
+  font-size: 13px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #0e4749;
+}
+
+/* ── Tipografía serif ─────────────────────────────────────────────────── */
+
+.dvj-h1,
+.dvj-h2 {
+  font-family: Georgia, 'Iowan Old Style', 'Times New Roman', serif;
+  font-weight: 400;
+  letter-spacing: normal;
+  color: var(--dvj-ink);
+  margin: 0;
+}
+
+.dvj-h1 {
+  font-size: clamp(44px, 5.2vw, 64px);
+  line-height: 1.16;
+}
+
+.dvj-h2 {
+  font-size: clamp(32px, 3.6vw, 44px);
+  line-height: 1.2;
+  margin-bottom: 24px;
+}
+
+.dvj-h2--center {
+  text-align: center;
+}
+
+.dvj-h1 em,
+.dvj-h2 em,
+.dvj-pullquote em {
+  font-style: italic;
+  font-weight: 500;
+}
+
+/* Subrayado ondulado hand-drawn bajo la palabra de énfasis del hero. */
+.dvj-em-underline {
+  position: relative;
+  white-space: nowrap;
+}
+
+.dvj-em-underline svg {
+  position: absolute;
+  left: 2%;
+  bottom: -0.14em;
+  width: 96%;
+  height: 0.22em;
+  overflow: visible;
+}
+
+.dvj-squiggle {
+  fill: none;
+  stroke: var(--dvj-teal);
+  stroke-width: 5;
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  opacity: 0;
+}
+
+.is-visible .dvj-squiggle,
+.dvj-journal .is-visible .dvj-squiggle {
+  animation: dvj-draw 0.9s ease-out 0.55s forwards;
+}
+
+@keyframes dvj-draw {
+  from {
+    stroke-dashoffset: 1;
+    opacity: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+}
+
+.dvj-lede {
+  font-size: 19px;
+  line-height: 1.6;
+  max-width: 34em;
+  margin: 28px 0 0;
+}
+
+.dvj-body {
+  max-width: 46em;
+  margin: 0 0 48px;
+  font-size: 17px;
+  color: var(--dvj-ink);
+}
+
+.dvj-body--narrow {
+  max-width: 38em;
+  margin-bottom: 0;
+}
+
+.dvj-body--center {
+  margin-inline: auto;
+  text-align: center;
+}
+
+/* ── Botones (pill 48px) ──────────────────────────────────────────────── */
+
+.dvj-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 28px;
+}
+
+.dvj-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 12px 30px;
+  border-radius: 48px;
+  font-weight: 600;
+  font-size: 16px;
+  line-height: 1.25;
+  text-decoration: none;
+  border: 1px solid transparent;
+  transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease;
+}
+
+.dvj-btn--primary {
+  background: var(--dvj-teal);
+  border-color: var(--dvj-teal);
+  color: #ffffff;
+}
+
+.dvj-btn--primary:hover {
+  background: var(--dvj-teal-hover);
+  border-color: var(--dvj-teal-hover);
+}
+
+.dvj-btn--navy {
+  background: var(--dvj-navy);
+  border-color: var(--dvj-navy);
+  color: #ffffff;
+}
+
+.dvj-btn--navy:hover {
+  background: #102543;
+  border-color: #102543;
+}
+
+.dvj-btn--ghost {
+  background: transparent;
+  border-color: var(--dvj-ghost);
+  color: var(--dvj-ghost);
+}
+
+.dvj-btn--ghost:hover {
+  background: rgba(14, 71, 73, 0.08);
+}
+
+/* ── Barra superior ───────────────────────────────────────────────────── */
+
+.dvj-topbar {
+  border-bottom: 1px solid rgba(35, 30, 33, 0.16);
+  background: color-mix(in srgb, var(--dvj-canvas) 88%, transparent);
+  backdrop-filter: blur(6px);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.dvj-topbar-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding-block: 14px;
+}
+
+.dvj-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-family: Georgia, serif;
+  font-size: 21px;
+  font-weight: 500;
+  text-decoration: none;
+  color: var(--dvj-ink);
+}
+
+.dvj-nav {
+  display: flex;
+  gap: 26px;
+}
+
+.dvj-nav a {
+  font-size: 15px;
+  font-weight: 500;
+  text-decoration: none;
+  color: var(--dvj-ink);
+}
+
+.dvj-nav a:hover {
+  color: var(--dvj-teal);
+}
+
+@media (max-width: 900px) {
+  .dvj-nav {
+    display: none;
+  }
+}
+
+/* ── Hero ─────────────────────────────────────────────────────────────── */
+
+.dvj-hero {
+  position: relative;
+  overflow: hidden;
+  padding-block: 108px 96px;
+  scroll-margin-top: 72px;
+}
+
+.dvj-hero-grid {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: 1.06fr 0.94fr;
+  align-items: center;
+  gap: 56px;
+}
+
+@media (max-width: 960px) {
+  .dvj-hero-grid {
+    grid-template-columns: 1fr;
+  }
+  .dvj-hero-art {
+    order: -1;
+    max-width: 480px;
+  }
+  .dvj-hero {
+    padding-block: 64px 72px;
+  }
+}
+
+/* Aura de referencia: ambiente muy sutil detrás del contenido. */
+.dvj-hero-aura {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+  opacity: 0.1;
+  pointer-events: none;
+  -webkit-mask-image: radial-gradient(
+    ellipse 62% 58% at 68% 34%,
+    rgb(0 0 0 / 1) 0%,
+    rgb(0 0 0 / 0.45) 52%,
+    transparent 78%
+  );
+  mask-image: radial-gradient(
+    ellipse 62% 58% at 68% 34%,
+    rgb(0 0 0 / 1) 0%,
+    rgb(0 0 0 / 0.45) 52%,
+    transparent 78%
+  );
+}
+
+/* ── Ilustración field notes (tinta hand-drawn) ───────────────────────── */
+
+.dvj-sketch {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.dvj-sketch rect,
+.dvj-sketch path,
+.dvj-sketch line,
+.dvj-sketch circle,
+.dvj-sketch ellipse {
+  fill: none;
+  stroke: #231e21;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.dvj-fill-teal {
+  fill: #65b8a2 !important;
+  stroke: #231e21;
+}
+
+.dvj-fill-rose {
+  fill: var(--dvj-rose) !important;
+  stroke: #231e21;
+}
+
+.dvj-sparkline {
+  stroke-width: 3;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+}
+
+.is-visible .dvj-sparkline,
+.dvj-journal .is-visible .dvj-sparkline {
+  animation: dvj-draw 1.15s cubic-bezier(0.3, 0, 0.25, 1) 0.75s forwards;
+}
+
+.dvj-sketch-endpoint {
+  opacity: 0;
+}
+
+.is-visible .dvj-sketch-endpoint,
+.dvj-journal .is-visible .dvj-endpoint {
+  animation: dvj-pop 320ms ease-out 1.85s forwards;
+}
+
+@keyframes dvj-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.dvj-sketch-circle {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+}
+
+.is-visible .dvj-sketch-circle,
+.dvj-journal .is-visible .dvj-sketch-circle {
+  animation: dvj-circle-wobble 700ms ease-out 1.5s both;
+}
+
+@keyframes dvj-circle-wobble {
+  0% {
+    stroke-dashoffset: 1;
+    transform: rotate(-6deg);
+  }
+  100% {
+    stroke-dashoffset: 0;
+    transform: rotate(0deg);
+  }
+}
+
+/* ── Franja de estadísticas ───────────────────────────────────────────── */
+
+.dvj-statstrip {
+  border-block: 1px solid rgba(35, 30, 33, 0.24);
+  background: var(--dvj-mint);
+}
+
+.dvj-statstrip-row {
+  display: flex;
+  flex-wrap: wrap;
+  row-gap: 10px;
+  align-items: center;
+  justify-content: center;
+  padding-block: 20px;
+}
+
+.dvj-stat-text {
+  font-family: ui-monospace, 'SFMono-Regular', 'Cascadia Mono', Menlo, Consolas,
+    monospace;
+  font-size: 13.5px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--dvj-ink);
+  padding-inline: 18px;
+  white-space: nowrap;
+}
+
+.dvj-stat-pipe {
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  color: rgba(35, 30, 33, 0.38);
+  user-select: none;
+}
+
+/* ── Secciones ────────────────────────────────────────────────────────── */
+
+.dvj-section {
+  padding-block: var(--dvj-rhythm);
+}
+
+.dvj-section--blush {
+  background: var(--dvj-blush);
+}
+
+.dvj-section--foam {
+  background: var(--dvj-foam);
+}
+
+/* ── Pull-quote (tesis) ───────────────────────────────────────────────── */
+
+.dvj-pullquote {
+  margin: 0;
+  padding: 0;
+}
+
+.dvj-pullquote p {
+  margin: 0;
+  max-width: 21em;
+  font-family: Georgia, serif;
+  font-size: clamp(36px, 4.4vw, 54px);
+  line-height: 1.2;
+  border-left: 3px solid var(--dvj-rose);
+  padding-left: 36px;
+}
+
+/* ── Cards de dos columnas (mint, flat) ───────────────────────────────── */
+
+.dvj-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 28px;
+}
+
+@media (max-width: 860px) {
+  .dvj-cards {
+    grid-template-columns: 1fr;
+  }
+}
+
+.dvj-card {
+  background: var(--dvj-mint);
+  border: 1px solid rgba(35, 30, 33, 0.18);
+  border-radius: var(--dvj-radius-card);
+  padding: 36px 34px;
+}
+
+#autoria.dvj-card {
+  background: var(--dvj-cream);
+}
+
+.dvj-card-title {
+  margin: 0;
+  font-family: Georgia, serif;
+  font-weight: 500;
+  font-size: 25px;
+  line-height: 1.25;
+}
+
+.dvj-card-sub {
+  margin: 8px 0 22px;
+  font-size: 15px;
+  color: var(--dvj-meta);
+}
+
+.dvj-checklist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 13px;
+}
+
+.dvj-checklist li {
+  display: flex;
+  align-items: baseline;
+  gap: 11px;
+  font-size: 16px;
+}
+
+.dvj-check {
+  color: var(--dvj-teal);
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+/* ── Chips IR ─────────────────────────────────────────────────────────── */
+
+.dvj-chips {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 0;
+  margin: 0 0 40px;
+}
+
+.dvj-chip {
+  border: 1px solid rgba(35, 30, 33, 0.28);
+  border-radius: 100px;
+  padding: 7px 18px;
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  color: var(--dvj-ink);
+}
+
+/* ── Diagrama IR ──────────────────────────────────────────────────────── */
+
+.dvj-ir-diagram {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.dvj-ir-diagram rect {
+  fill: var(--dvj-canvas);
+  stroke: #231e21;
+  stroke-width: 1.6;
+}
+
+.dvj-ir-core rect {
+  fill: #ffffff;
+}
+
+.dvj-ir-diagram text {
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 13px;
+  letter-spacing: 0.03em;
+  fill: var(--dvj-ink);
+  text-anchor: middle;
+  dominant-baseline: middle;
+}
+
+.dvj-ir-diagram path {
+  fill: none;
+  stroke: rgba(35, 30, 33, 0.55);
+  stroke-width: 1.6;
+  stroke-dasharray: 5 6;
+}
+
+.dvj-ir-links path:last-child {
+  stroke-dasharray: none;
+}
+
+/* ── Mini cards de agentes ────────────────────────────────────────────── */
+
+.dvj-cards--three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+@media (max-width: 960px) {
+  .dvj-cards--three {
+    grid-template-columns: 1fr;
+  }
+}
+
+.dvj-mini {
+  border: 1px solid rgba(35, 30, 33, 0.18);
+  border-radius: var(--dvj-radius-card);
+  padding: 26px 26px 28px;
+  background: color-mix(in srgb, var(--dvj-mint) 42%, transparent);
+}
+
+.dvj-mini-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.dvj-mini-title {
+  margin: 0;
+  font-family: Georgia, serif;
+  font-weight: 500;
+  font-size: 20px;
+}
+
+.dvj-tag {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 100px;
+  padding: 4px 12px;
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 11.5px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border: 1px solid currentColor;
+  white-space: nowrap;
+}
+
+.dvj-tag--teal {
+  color: var(--dvj-teal);
+}
+.dvj-tag--navy {
+  color: var(--dvj-navy);
+}
+.dvj-tag--rose {
+  color: #8c4a6b;
+}
+.dvj-tag--sand {
+  color: var(--dvj-sand);
+}
+
+.dvj-mini-desc {
+  margin: 0;
+  font-size: 15.5px;
+  line-height: 1.6;
+}
+
+.dvj-runtime-note {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 40px 0 0;
+  font-size: 15px;
+  color: var(--dvj-ink);
+}
+
+/* ── CTA final ────────────────────────────────────────────────────────── */
+
+.dvj-cta {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  text-align: center;
+}
+
+.dvj-cta .dvj-body {
+  margin-bottom: 32px;
+}
+
+/* ── Pie ──────────────────────────────────────────────────────────────── */
+
+.dvj-footer {
+  border-top: 1px solid rgba(35, 30, 33, 0.16);
+  padding-block: 30px;
+}
+
+.dvj-footer-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.dvj-footer-disclaimer {
+  margin: 0;
+  font-size: 14px;
+  color: var(--dvj-ink);
+}
+
+.dvj-footer-meta {
+  margin: 0;
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 12.5px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--dvj-meta);
+}
+
+/* ── Reveal al scroll ─────────────────────────────────────────────────── */
+
+[data-reveal] {
+  transition:
+    opacity 0.55s ease-out var(--reveal-delay, 0ms),
+    transform 0.55s ease-out var(--reveal-delay, 0ms);
+}
+
+[data-reveal].js-reveal-pending {
+  opacity: 0;
+  transform: translateY(14px);
+}
+
+[data-reveal].is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-reveal] {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+  .dvj-squiggle,
+  .dvj-sparkline {
+    stroke-dasharray: none;
+    stroke-dashoffset: 0;
+    opacity: 1;
+    animation: none;
+  }
+  .dvj-sketch-endpoint,
+  .dvj-sketch-circle {
+    opacity: 1;
+    animation: none;
+  }
+  .dvj-journal .dvj-dot {
+    animation: none;
+  }
+}

@@ -1,0 +1,47 @@
+[
+    {
+        "id": "BPA001",
+        "name": "Columns with no description",
+        "category": "Documentation",
+        "severity": 1,
+        "description": "Visible columns should have a description to assist users.",
+        "scope": "column",
+        "expression": "object.get('description', '') == '' and not object.get('isHidden', False)"
+    },
+    {
+        "id": "BPA002",
+        "name": "Numeric columns visible",
+        "category": "Model",
+        "severity": 2,
+        "description": "Numeric columns should generally be hidden and aggregated via measures, unless they are specific attributes (e.g., Year).",
+        "scope": "column",
+        "expression": "object.get('dataType', '') in ['int64', 'double', 'decimal'] and not object.get('isHidden', False) and 'id' not in object.get('name', '').lower() and 'year' not in object.get('name', '').lower()"
+    },
+    {
+        "id": "BPA003",
+        "name": "Unused columns in model",
+        "category": "Performance",
+        "severity": 3,
+        "description": "Columns present in the model but not used in any visual report (Measure Killer logic).",
+        "scope": "column",
+        "expression": "not object.get('isReferenced', True)"
+    },
+    {
+        "id": "BPA004",
+        "name": "Measures with no description",
+        "category": "Documentation",
+        "severity": 1,
+        "description": "Measures should have a description detailing their logic.",
+        "scope": "measure",
+        "expression": "object.get('description', '') == ''"
+    },
+    {
+        "id": "BPA005",
+        "name": "Date column not marked as Date Table",
+        "category": "Time Intelligence",
+        "severity": 2,
+        "description": "Tables containing date logic should be marked as Date tables.",
+        "scope": "table",
+        "expression": "any(c.get('dataType') == 'dateTime' for c in object.get('columns', [])) and not object.get('dataCategory') == 'Time'"
+    }
+]

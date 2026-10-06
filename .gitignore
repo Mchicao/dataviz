@@ -1,0 +1,22 @@
+# Node
+node_modules/
+dist/
+dist-*/
+*.local
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.cache/
+*.egg-info/
+
+# Entorno y secretos
+.env
+.env.*
+
+# Logs y salidas
+logs/
+output/
+*.log
