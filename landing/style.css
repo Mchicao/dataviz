@@ -318,3 +318,5 @@ h1{font-size:clamp(42px,11.5vw,58px)}
 .button:hover{box-shadow:0 12px 24px -12px rgba(23,25,28,.55)}
 .button:active,.button-ghost:active{transform:translateY(0) scale(.98)}
 }
+.stack-card h3 a{color:inherit;text-decoration:none;border-bottom:1px solid transparent;transition:border-color .25s var(--ease)}
+.stack-card h3 a:hover{border-bottom-color:currentColor}
