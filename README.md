@@ -1,62 +1,62 @@
 # DataVIZ
 
-**Analítica de clase mundial. Agent Native.**
+**Business intelligence designed for agents.**
 
-DataVIZ es un estudio de autoría y consumo de dashboards donde humanos y agentes de IA editan el mismo documento: el asistente propone cambios acotados y versionados, tú los apruebas. El conocimiento de negocio (métricas, reglas, jerarquías) queda en el modelo, no atrapado en un gráfico.
+DataVIZ is an authoring and consumption studio for dashboards where humans and AI agents edit the same document: the assistant proposes bounded, versioned changes and you approve them. Business knowledge — metrics, rules, hierarchies — lives in the model, not trapped inside a chart.
 
-🔗 **[Ver la landing](https://mchicao.github.io/dataviz/)**
+🔗 **[Visit the landing page](https://dataviz.matiaschicao.cl/)** · [Versión en español](https://dataviz.matiaschicao.cl/es/)
 
-## Características
+## Features
 
-**Autoría visual completa**
-- 9 tipos de visual: KPI, barras, columnas, línea, área, torta, dona, dispersión y tabla, con editor de posición, tamaño, color y títulos.
-- Canvas tipo Power BI con snap a grid, zoom HUD, reordenar y redimensionar con gestos y teclado.
+**Full visual authoring**
+- 9 visual types: KPI, bars, columns, line, area, pie, donut, scatter and table, with position, size, color and title editing.
+- Power BI-style canvas with grid snapping, zoom HUD, and reordering/resizing via gestures and keyboard.
 
-**Métricas y filtros reales**
-- Métricas calculadas con editor de expresiones y filtros en 3 alcances (página, todas las páginas, visual) con visibilidad y bloqueo por filtro.
-- Importación de CSV local (hasta 2 MiB) con fingerprint: los datos nunca salen de tu navegador.
+**Real metrics and filters**
+- Calculated metrics with an expression editor and filters at 3 scopes (page, all pages, visual) with per-filter visibility and pinning.
+- Local CSV import (up to 2 MiB) with fingerprinting: your data never leaves the browser.
 
-**Colaboración humano-agente**
-- Asistente conectado a LLM (Z.ai / GLM) o reglas locales deterministas: describe lo que quieres y recibe una propuesta estructurada con resumen, cambios y advertencias.
-- Toda propuesta se previsualiza y requiere aprobación humana: rechazar restaura el estado sin crear versión.
+**Human–agent collaboration**
+- Assistant connected to an LLM (Z.ai / GLM) or deterministic local rules: describe what you want and receive a structured proposal with summary, changes and warnings.
+- Every proposal is previewed and requires human approval; rejecting restores the previous state without creating a version.
 
-**Versionado y publicación**
-- Historial completo con mensajes por cambio, restauración a cualquier versión y borrador persistente en el navegador.
-- Publicación gobernada contra el servicio: solicitud de publicación con candidato pendiente de aprobación y rollback durable con control de concurrencia (CAS + idempotencia).
+**Versioning and governed publication**
+- Full history with per-change messages, restore to any version, and a browser-persisted draft.
+- Governed publication against the service: publication request with a pending candidate and durable rollback backed by CAS concurrency control and idempotency keys.
 
-**Viewer de consumo**
-- Modo lectura de cualquier versión (`?mode=viewer`), con drill de jerarquías, cross-filter, tooltips y estados de carga/vacío accesibles (WCAG).
+**Consumption viewer**
+- Read-only mode for any version (`?mode=viewer`) with hierarchy drill-down, cross-filtering, tooltips and accessible loading/empty states (WCAG).
 
-## Inicio rápido
+## Quick start
 
-Requisitos: Node 20.19+ (recomendado 24/26) y Python 3.11–3.14 con [uv](https://docs.astral.sh/uv/).
+Requirements: Node 20.19+ (24/26 recommended) and Python 3.11–3.14 with [uv](https://docs.astral.sh/uv/).
 
 ```bash
-# 1. Frontend (puerto 3000)
+# 1. Frontend (port 3000)
 cd apps/dataviz_web
 npm install
 npm run dev
 
-# 2. Backend del asistente (puerto 8766, proxy /api/assistant)
-#    opcional: copia .env.example a .env y define ZAI_API_KEY
+# 2. Assistant backend (port 8766, proxied at /api/assistant)
+#    optional: copy .env.example to .env and set ZAI_API_KEY
 uv sync
 uv run python -m apps.dataviz_service.local_assistant --port 8766
 ```
 
-Abre `http://localhost:3000`. Sin `ZAI_API_KEY` el asistente funciona con reglas locales.
+Open `http://localhost:3000`. Without `ZAI_API_KEY` the assistant falls back to deterministic local rules.
 
-## Arquitectura
+## Architecture
 
-| Pieza | Tecnología |
+| Layer | Technology |
 | --- | --- |
 | Frontend | React 19 · Effect 4 · TypeScript 7 (tsgo) · Vite 8 |
 | Backend | Python 3.11–3.14 · Starlette · MCP |
-| Motor | `core/`: IR tipada, compiladores render-plan/PBIP, conectores y validación de fidelidad |
+| Engine | `core/`: typed IR, render-plan/PBIP compilers, connectors and fidelity validation |
 
-- `apps/dataviz_web`: editor de authoring, viewer y landings.
-- `apps/dataviz_service`: asistente local, trabajos de migración, publicación gobernada y API.
-- `core/`: el motor — contratos canónicos (IR de interacción, semántica, presentación), compiladores a render plan y PBIP, conectores (Postgres, Excel, JSON, Hyper) y gates de fidelidad numérica/visual.
+- `apps/dataviz_web`: authoring editor, viewer and landing pages.
+- `apps/dataviz_service`: local assistant, migration jobs, governed publication and API.
+- `core/`: the engine — canonical contracts (interaction, semantic and presentation IR), render-plan and PBIP compilers, connectors (Postgres, Excel, JSON, Hyper) and numeric/visual fidelity gates.
 
-## Estado del proyecto
+## Project status
 
-DataVIZ está en desarrollo activo como producto SaaS. Este repositorio contiene el vertical de autoría y consumo que se ejecuta localmente. Sin licencia de uso: todos los derechos reservados.
+DataVIZ is under active development as a SaaS product. This repository contains the local authoring and consumption vertical. No license granted: all rights reserved.
