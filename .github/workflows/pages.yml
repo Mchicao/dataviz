@@ -30,6 +30,7 @@ jobs:
         run: |
           npm ci
           npx vite build --config vite.pages.config.ts
+          cp dist-pages/pages.html dist-pages/index.html
         working-directory: apps/dataviz_web
 
       - uses: actions/upload-pages-artifact@v3
