@@ -50,6 +50,7 @@ from apps.dataviz_service.runtime.errors import (
 )
 from apps.dataviz_service.runtime.executor import QueryExecutor
 from apps.dataviz_service.runtime.materializer import materialize_runtime_results
+from apps.dataviz_service.security.identity import Principal
 from core.authoring.custom_visual_cost import estimate_presentation_operations
 from core.authoring.interaction_operations import InteractionOperation, materialize_interactions
 from core.authoring.operations import Operation, materialize
@@ -249,8 +250,10 @@ def _authoring_rollback_request_sha256(
     return hashlib.sha256(canonical).hexdigest()
 
 
-def _load_semantic_model_for_analytics(raw_model: Any) -> SemanticModel | None:
-    """Validate the canonical model and reject semantic RLS until it is enforceable."""
+def _load_semantic_model_for_analytics(
+    raw_model: Any, principal: Principal | None = None,
+) -> SemanticModel | None:
+    """Valida el modelo y exige identidad autenticada para ejecutar RLS."""
     if raw_model is None:
         return None
     if not isinstance(raw_model, Mapping):
@@ -259,9 +262,9 @@ def _load_semantic_model_for_analytics(raw_model: Any) -> SemanticModel | None:
         model = SemanticModel.from_dict(raw_model)
     except (KeyError, TypeError, ValueError) as exc:
         raise RuntimeMaterializationError("Persisted semantic model is invalid.") from exc
-    if model.rls_intents:
+    if model.rls_intents and principal is None:
         raise SemanticRLSUnavailableError(
-            "Persisted semantic row-level security cannot be safely enforced."
+            "Semantic row-level security requires an authenticated principal."
         )
     return model
 
@@ -885,7 +888,7 @@ class PostgresStore:
             compiled_plan = RenderPlan.from_dict(compiled_plan_dict)
             inherited_plan = compiled_plan_dict
             inherited_results = None
-            if inherited_datasets:
+            if inherited_datasets and not semantic.rls_intents:
                 try:
                     deserialized_ds = _deserialize_datasets(inherited_datasets)
                     inherited_results = materialize_runtime_results(
@@ -1066,6 +1069,8 @@ class PostgresStore:
             rollback_datasets = target.get("datasets") or head.get("datasets")
             rollback_plan = target.get("render_plan") or head.get("render_plan")
             rollback_results = target.get("runtime_results") or head.get("runtime_results")
+            if target_semantic.rls_intents:
+                rollback_results = None
             rollback_scan = target.get("credential_scan") or head.get("credential_scan")
 
             cursor.execute(
@@ -1203,7 +1208,10 @@ class PostgresStore:
             if cursor.rowcount != 1:
                 raise ResourceNotFoundError("Version", version_id)
 
-    def execute_query(self, tenant_id: str, version_id: str, query: QuerySpec) -> Dataset:
+    def execute_query(
+        self, tenant_id: str, version_id: str, query: QuerySpec,
+        *, principal: Principal | None = None,
+    ) -> Dataset:
         """Runs an AST query against the version's persisted dataset.
 
         The query can only read the version visible inside the tenant that
@@ -1214,6 +1222,8 @@ class PostgresStore:
         memory; no SQL is generated and no request-derived names are
         interpolated.
         """
+        if principal is not None and principal.tenant_id != tenant_id:
+            raise SemanticRLSUnavailableError("RLS identity does not belong to the tenant.")
         with self.transaction(tenant_id) as cursor:
             cursor.execute(
                 _QUERY_DATASET_SQL,
@@ -1232,7 +1242,7 @@ class PostgresStore:
         if row is None:
             raise ResourceNotFoundError("Version", version_id)
         _validate_persisted_canonical_triple(row)
-        model = _load_semantic_model_for_analytics(row["semantic_model"])
+        model = _load_semantic_model_for_analytics(row["semantic_model"], principal)
         status = row["status"]
         if status == "missing":
             raise NotImplementedError("query datasource is not materialized")
@@ -1256,9 +1266,22 @@ class PostgresStore:
             raise RuntimeMaterializationError(
                 f"Dataset {query.from_datasource!r} has an invalid persisted materialization."
             ) from exc
-        return QueryExecutor(model).execute(query, dataset)
+        roles: frozenset[str] = frozenset()
+        if model is not None and principal is not None and any(policy.roles for policy in model.rls_intents):
+            version = self.get_version(tenant_id, version_id)
+            grants, _ = self.authorization_grants(
+                tenant_id, principal.id, organization_id=tenant_id,
+                project_id=version.project_id, version_id=version_id,
+            )
+            roles = frozenset(grants)
+        return QueryExecutor(model, principal=principal, rls_roles=roles).execute(query, dataset)
 
-    def get_runtime_payload(self, tenant_id: str, version_id: str) -> dict[str, Any]:
+    def get_runtime_payload(
+        self, tenant_id: str, version_id: str, *, principal: Principal | None = None,
+    ) -> dict[str, Any]:
+        """Entrega resultados propios del usuario sin reutilizar agregados globales con RLS."""
+        if principal is not None and principal.tenant_id != tenant_id:
+            raise SemanticRLSUnavailableError("RLS identity does not belong to the tenant.")
         with self.transaction(tenant_id) as cursor:
             cursor.execute(
                 """SELECT render_plan, runtime_results, credential_scan, semantic_model,
@@ -1271,10 +1294,22 @@ class PostgresStore:
         if row is None:
             raise ResourceNotFoundError("Version", version_id)
         _validate_persisted_canonical_triple(row)
-        _load_semantic_model_for_analytics(row["semantic_model"])
+        model = _load_semantic_model_for_analytics(row["semantic_model"], principal)
+        results = row["runtime_results"]
+        if model is not None and model.rls_intents:
+            try:
+                plan = RenderPlan.from_dict(row["render_plan"])
+            except (KeyError, TypeError, ValueError) as exc:
+                raise SemanticRLSUnavailableError("RLS requires an executable render plan.") from exc
+            results = materialize_runtime_results(
+                plan, model, {},
+                query_runner=lambda query: self.execute_query(
+                    tenant_id, version_id, query, principal=principal,
+                ),
+            )
         return {
             "plan": row["render_plan"],
-            "results": row["runtime_results"],
+            "results": results,
             "credential_scan": row["credential_scan"],
         }
 

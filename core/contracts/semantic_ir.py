@@ -398,7 +398,8 @@ class Expression:
     * ``field_ref``: references ``entity.name``; ``children`` empty. An empty
       ``entity`` denotes an unqualified reference resolved later by a consumer.
     * ``parameter_ref`` / ``measure_ref``: references ``name``; no children.
-    * ``principal``: the executing user/principal (neutral); no fields.
+    * ``principal``: the executing user identifier; optional ``name`` selects
+      an identity attribute supported by the trusted runtime, never a query parameter.
     * ``unary``: one child; ``op`` in :data:`ALLOWED_UNARY_OPS`.
     * ``binary``: two children; ``op`` in :data:`ALLOWED_BINARY_OPS`.
     * ``func``: ``name`` in :data:`ALLOWED_SCALAR_FUNCS`; children are arguments

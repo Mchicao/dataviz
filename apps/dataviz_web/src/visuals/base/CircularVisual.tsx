@@ -31,6 +31,10 @@ export const CircularVisual: React.FC<CircularVisualProps> = ({ visual, variant 
   }
 
   const total = slices.reduce((sum, slice) => sum + slice.value, 0);
+  // El total exacto vive en el <desc>/tooltips; el centro usa formato compacto para no desbordar el hueco.
+  const centerLabel = total >= 10_000
+    ? new Intl.NumberFormat('en-US', { maximumFractionDigits: 1, notation: 'compact' }).format(total)
+    : formatScalar(total);
   let cursor = -Math.PI / 2;
   const radius = 72;
   const cx = 100;
@@ -59,7 +63,17 @@ export const CircularVisual: React.FC<CircularVisualProps> = ({ visual, variant 
             </path>
           );
         })}
-        {variant === 'donut' && <circle cx={cx} cy={cy} r={34} fill="#ffffff" />}
+        {variant === 'donut' && (
+          <>
+            <circle cx={cx} cy={cy} r={34} fill="#ffffff" />
+            <text data-donut-total={formatScalar(total)} dominantBaseline="middle" fill="var(--dv-text, #172536)" fontSize="15" fontWeight="600" textAnchor="middle" x={cx} y={cy - 4}>
+              {centerLabel}
+            </text>
+            <text dominantBaseline="middle" fill="var(--dv-axis-text, #6b7784)" fontSize="9" textAnchor="middle" x={cx} y={cy + 10}>
+              total
+            </text>
+          </>
+        )}
       </svg>
     </section>
   );

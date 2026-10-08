@@ -12,8 +12,10 @@ from typing import Any
 
 from apps.dataviz_service.runtime.errors import (
     OpaqueDAXExecutionUnavailableError,
+    SemanticRLSUnavailableError,
     UnknownFieldError,
 )
+from apps.dataviz_service.security.identity import Principal
 from core.contracts.dataset import Dataset
 from core.contracts.query_ast import Predicate, QuerySpec, SelectItem
 from core.contracts.semantic_ir import Expression, SemanticModel, walk_expression
@@ -31,8 +33,13 @@ class QueryExecutor:
         model: SemanticModel | None = None,
         parameters: Mapping[str, object] | None = None,
         runtime_parameters: Mapping[str, object] | None = None,
+        *,
+        principal: Principal | None = None,
+        rls_roles: frozenset[str] = frozenset(),
     ) -> None:
         self._model = model
+        self._principal = principal
+        self._rls_roles = rls_roles
         self._configured_parameters = dict(parameters or {})
         self.metrics = {metric.name: metric for metric in (model.metrics if model else ())}
         self.calculated_fields = {
@@ -67,6 +74,8 @@ class QueryExecutor:
                         model=self._model,
                         parameters=merged_parameters,
                         runtime_parameters=self._runtime_parameters,
+                        principal=self._principal,
+                        rls_roles=self._rls_roles,
                     )
                 else:
                     merged_parameters = dict(self._configured_parameters)
@@ -94,7 +103,7 @@ class QueryExecutor:
             finally:
                 self.parameters = parameters_before
         self._validate(query, dataset)
-        rows = [dict(row) for row in dataset.rows]
+        rows = self._rls_rows(query, dataset)
         rows = [row for row in rows if all(self._predicate_ok(p, row) for p in query.filters)]
         select = query.select or self._all_columns_select(dataset)
         output_names = self._output_names(select)
@@ -117,6 +126,114 @@ class QueryExecutor:
         if query.limit is not None:
             output = output[: query.limit]
         return Dataset(name=f"{dataset.name}__result", columns=output_names, rows=tuple(output))
+
+    def _principal_value(self, expression: Expression) -> str:
+        """Resuelve sólo atributos de la identidad verificada por el servidor."""
+        attribute = expression.name or "id"
+        if self._principal is None or attribute not in {"id", "tenant_id", "email"}:
+            raise SemanticRLSUnavailableError("RLS requires a trusted identity attribute.")
+        value = getattr(self._principal, attribute)
+        if not isinstance(value, str) or not value.strip():
+            raise SemanticRLSUnavailableError("A required RLS identity attribute is missing.")
+        return value
+
+    def _validate_rls_expression(self, expression: Expression, dataset: Dataset) -> bool:
+        """Valida un predicado local sin parámetros, medidas ni dependencias calculadas."""
+        boolean_children = [
+            self._validate_rls_expression(child, dataset) for child in expression.children
+        ]
+        kind = expression.kind
+        if kind == "literal":
+            if isinstance(expression.value, float) and not math.isfinite(expression.value):
+                raise SemanticRLSUnavailableError("RLS literals must be finite.")
+            return isinstance(expression.value, bool)
+        if kind == "principal":
+            self._principal_value(expression)
+            return False
+        if kind == "field_ref":
+            if expression.entity not in {"", dataset.name} or not dataset.has_column(expression.name):
+                raise SemanticRLSUnavailableError("RLS requires a physical field of its entity.")
+            return expression.data_type.value == "boolean"
+        if kind == "binary":
+            if expression.op in {"eq", "ne", "lt", "le", "gt", "ge"}:
+                return True
+            if expression.op in {"and", "or"} and all(boolean_children):
+                return True
+        if kind == "unary" and expression.op == "not" and all(boolean_children):
+            return True
+        if kind == "func":
+            arity = 2 if expression.name == "contains" else 1
+            if expression.name in {"lower", "upper", "trim", "is_blank", "contains"}:
+                if len(expression.children) == arity:
+                    return expression.name in {"is_blank", "contains"}
+        raise SemanticRLSUnavailableError("RLS expression is not safely supported.")
+
+    def _evaluate_rls(self, expression: Expression, row: Mapping[str, Any]) -> Any:
+        """Evalúa RLS con nulos de tres valores y sin coerción a permisos verdaderos."""
+        if expression.kind == "principal":
+            return self._principal_value(expression)
+        if expression.kind == "literal":
+            return expression.value
+        if expression.kind == "field_ref":
+            value = row[expression.name]
+            if value is not None and not isinstance(value, (str, bool, int, float)):
+                raise SemanticRLSUnavailableError("RLS requires scalar field values.")
+            if isinstance(value, float) and not math.isfinite(value):
+                raise SemanticRLSUnavailableError("RLS field values must be finite.")
+            return value
+        values = [self._evaluate_rls(child, row) for child in expression.children]
+        if expression.kind == "func":
+            return self._function(expression.name, values)
+        if expression.kind == "unary":
+            if values[0] is None:
+                return None
+            if type(values[0]) is not bool:
+                raise SemanticRLSUnavailableError("RLS logical operands must be boolean.")
+            return not values[0]
+        left, right = values
+        if expression.op in {"and", "or"}:
+            if any(value is not None and type(value) is not bool for value in values):
+                raise SemanticRLSUnavailableError("RLS logical operands must be boolean.")
+            if expression.op == "and":
+                return False if any(value is False for value in values) else (
+                    None if None in values else True
+                )
+            return True if any(value is True for value in values) else (
+                None if None in values else False
+            )
+        if left is None or right is None:
+            return None
+        if isinstance(left, bool) != isinstance(right, bool):
+            raise SemanticRLSUnavailableError("RLS cannot compare booleans with other scalar types.")
+        return self._binary(expression.op, left, right)
+
+    def _rls_rows(self, query: QuerySpec, dataset: Dataset) -> list[dict[str, Any]]:
+        """Aplica todas las restricciones antes de filtros, agregados, LOD y ventanas."""
+        rows = [dict(row) for row in dataset.rows]
+        if self._model is None or not self._model.rls_intents:
+            return rows
+        if self._principal is None:
+            raise SemanticRLSUnavailableError("Semantic RLS requires an authenticated principal.")
+        # ponytail: RLS local a una entidad; bloquear relaciones hasta implementar propagación.
+        if self._model.relationships or query.from_datasource != dataset.name:
+            raise SemanticRLSUnavailableError("RLS relationship propagation is unavailable.")
+        if dataset.name not in {entity.name for entity in self._model.entities}:
+            raise SemanticRLSUnavailableError("RLS datasource has no canonical entity.")
+        policies = [policy for policy in self._model.rls_intents if policy.entity == dataset.name]
+        for policy in policies:
+            if not self._validate_rls_expression(policy.expression, dataset):
+                raise SemanticRLSUnavailableError("RLS policy must return a boolean.")
+            if any(not isinstance(role, str) or not role.strip() for role in policy.roles):
+                raise SemanticRLSUnavailableError("RLS policy roles are invalid.")
+        active = [policy for policy in policies if not policy.roles or self._rls_roles.intersection(policy.roles)]
+        if any(policy.roles for policy in policies) and not any(policy.roles for policy in active):
+            return []
+        try:
+            return [row for row in rows if all(
+                self._evaluate_rls(policy.expression, row) is True for policy in active
+            )]
+        except (KeyError, TypeError, ValueError, OverflowError) as exc:
+            raise SemanticRLSUnavailableError("RLS policy could not be evaluated safely.") from exc
 
     @staticmethod
     def _all_columns_select(dataset: Dataset) -> list[SelectItem]:
@@ -341,7 +458,7 @@ class QueryExecutor:
                 group_by=group_by,
             )
         if kind == "principal":
-            raise UnknownFieldError("principal requiere un contexto RLS explícito")
+            return self._principal_value(expression)
         if kind == "agg":
             return self._aggregate_expression(expression, rows)
         if kind == "conditional":

@@ -1,13 +1,38 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React from 'react';
 import type { InterpretedRole, Scalar } from '../../runtime/types';
 import type { VisualProps } from './types';
 import { columnForRef, formatScalar } from './data';
 import { displayTitle } from './title';
 import { planAxisDensity, truncateLabel } from './axisDensity';
 import type { AxisDensityPlan } from './axisDensity';
+import {
+  ChartFrame,
+  EmptyVisual,
+  FALLBACK_PLOT,
+  compactCategoryLabel,
+  formatAxis,
+  isRatioRef,
+  niceMax,
+  seriesColor,
+  typeScaleFor,
+  useMeasuredSize,
+} from './chartPrimitives';
 
 /** Cartesian variants rendered by this component. */
-export type CartesianVariant = 'bar' | 'column' | 'line' | 'area' | 'scatter';
+export type CartesianVariant =
+  | 'bar'
+  | 'stacked_bar'
+  | 'percent_stacked_bar'
+  | 'column'
+  | 'stacked_column'
+  | 'percent_stacked_column'
+  | 'line'
+  | 'area'
+  | 'stacked_area'
+  | 'scatter'
+  | 'lollipop'
+  | 'waterfall'
+  | 'ribbon';
 
 export interface CartesianVisualProps extends VisualProps {
   variant: CartesianVariant;
@@ -34,46 +59,14 @@ const TEMPORAL_DENSITY_LIMIT = 5000;
 const SERIES_REDUCTION_THRESHOLD = 8;
 /** Series kept when the reduction above applies. */
 const RETAINED_SERIES_COUNT = 5;
-/** Fallback render box before the container is measured (also the jsdom size). */
-const FALLBACK_PLOT = { height: 300, width: 480 };
 
 /**
- * Mide el marco del visual en píxeles CSS para dibujar el SVG a escala 1:1.
- * Sin medición disponible (jsdom, primer frame) conserva la caja clásica 480×300.
- */
-function useMeasuredSize(): { ref: React.RefObject<HTMLElement | null>; width: number; height: number } {
-  const ref = useRef<HTMLElement | null>(null);
-  const [size, setSize] = useState(FALLBACK_PLOT);
-  useEffect(() => {
-    const node = ref.current;
-    if (!node || typeof ResizeObserver === 'undefined') {return;}
-    const observer = new ResizeObserver((entries) => {
-      const rect = entries[0]?.contentRect;
-      if (!rect || rect.width < 1 || rect.height < 1) {return;}
-      setSize((prev) => (
-        Math.abs(prev.width - rect.width) < 1 && Math.abs(prev.height - rect.height) < 1
-          ? prev
-          : { height: rect.height, width: rect.width }
-      ));
-    });
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, []);
-  return { height: size.height, ref, width: size.width };
-}
-
-/**
- * Small dependency-free SVG renderer for neutral cartesian intents.
- *
  * Tableau calls every rectangular mark a bar. Shelf semantics disambiguate the
  * orientation: a measure on x is horizontal; a measure on y is vertical.
  */
 export const CartesianVisual: React.FC<CartesianVisualProps> = ({ visual, variant, onDataSelect }) => {
   const frame = useMeasuredSize();
-  const typeScale = Math.min(
-    1.25,
-    Math.max(0.6, Math.min(frame.width / FALLBACK_PLOT.width, frame.height / FALLBACK_PLOT.height)),
-  );
+  const typeScale = typeScaleFor(frame.width, frame.height);
   const exactRole = (names: readonly string[]) => {
     for (const name of names) {
       const role = visual.roles[name];
@@ -93,8 +86,10 @@ export const CartesianVisual: React.FC<CartesianVisualProps> = ({ visual, varian
     return;
   };
 
-  const horizontal = variant === 'bar'
-    && Boolean(measureRole(['x_axis']) || (!measureRole(['y_axis']) && !measureRole(['value', 'y'])));
+  // Familia barras (PBI barChart / Tableau barras horizontales): horizontal por
+  // defecto; sólo es vertical cuando la medida vive explícitamente en y_axis.
+  const horizontal = (variant === 'bar' || variant === 'stacked_bar' || variant === 'percent_stacked_bar')
+    && !measureRole(['y_axis']);
   const labelRole = exactRole(['label']);
   const valRole = measureRole(['value', 'y'])
     ?? (horizontal ? measureRole(['x_axis']) : measureRole(['y_axis']))
@@ -142,55 +137,44 @@ export const CartesianVisual: React.FC<CartesianVisualProps> = ({ visual, varian
 
   if (points.length === 0) {
     return (
-      <section
+      <EmptyVisual
+        className="dv-cartesian"
+        detail="0 points"
+        reason="no data"
         ref={frame.ref}
-        className="dv-cartesian dv-cartesian--empty"
-        role="img"
-        aria-labelledby={`${sid}-title ${sid}-desc`}
-        style={frameStyle(typeScale)}
-      >
-        <span id={`${sid}-title`} style={{ color: '#94a3b8' }}>{title}: no data</span>
-        <span id={`${sid}-desc`} style={{ display: 'none' }}>0 points</span>
-      </section>
+        sid={sid}
+        title={title}
+        typeScale={typeScale}
+      />
     );
   }
 
   return (
-    <section
-      ref={frame.ref}
+    <ChartFrame
       className={`dv-cartesian dv-cartesian--${orientation}`}
-      data-density-mode={density.mode}
-      data-rendered-mark-count={points.length}
-      data-source-mark-count={density.sourceCount}
-      data-visible-series-count={density.visibleSeries}
-      style={frameStyle(typeScale)}
+      desc={`${variant} chart of ${valRole?.ref ?? 'value'} by ${catRole?.ref ?? 'index'}; ${points.length} points${density.mode === 'sampled' ? `, sampled from ${density.sourceCount} source points` : ''}${density.mode === 'sampled_top_series' ? `, top ${density.visibleSeries} series by magnitude, sampled from ${density.sourceCount} source points` : ''}, range ${formatScalar(yMin)} to ${formatScalar(yMax)}.`}
+      height={frame.height}
+      note={
+        density.mode === 'sampled' ? `Sampled · ${points.length} of ${density.sourceCount} points`
+        : density.mode === 'sampled_top_series' ? `Sampled · top ${density.visibleSeries} series · ${points.length} of ${density.sourceCount} points`
+        : undefined
+      }
+      ref={frame.ref}
+      sectionProps={{
+        'data-density-mode': density.mode,
+        'data-rendered-mark-count': points.length,
+        'data-source-mark-count': density.sourceCount,
+        'data-visible-series-count': density.visibleSeries,
+      }}
+      sid={sid}
+      svgTitle={`${title} (${variant})`}
+      title={title}
+      typeScale={typeScale}
+      width={frame.width}
     >
-      <h3 id={`${sid}-heading`} style={headingStyle(typeScale)}>
-        <span style={headingTitleStyle}>{title}</span>
-        {density.mode === 'sampled' && (
-          <span className="dv-density-note">Sampled · {points.length} of {density.sourceCount} points</span>
-        )}
-        {density.mode === 'sampled_top_series' && (
-          <span className="dv-density-note">
-            Sampled · top {density.visibleSeries} series · {points.length} of {density.sourceCount} points
-          </span>
-        )}
-      </h3>
-      <svg
-        width="100%"
-        height="100%"
-        viewBox={`0 0 ${frame.width} ${frame.height}`}
-        role="img"
-        style={chartStyle}
-        aria-labelledby={`${sid}-title ${sid}-desc`}
-      >
-        <title id={`${sid}-title`}>{`${title} (${variant})`}</title>
-        <desc id={`${sid}-desc`}>
-          {`${variant} chart of ${valRole?.ref ?? 'value'} by ${catRole?.ref ?? 'index'}; ${points.length} points${density.mode === 'sampled' ? `, sampled from ${density.sourceCount} source points` : ''}${density.mode === 'sampled_top_series' ? `, top ${density.visibleSeries} series by magnitude, sampled from ${density.sourceCount} source points` : ''}, range ${formatScalar(yMin)} to ${formatScalar(yMax)}.`}
-        </desc>
-        {horizontal
-          ? renderHorizontalBars(points, valRole?.ref ?? '', labelRole?.ref ?? '', selectPoint, frame.width, frame.height, typeScale)
-          : renderVerticalChart(
+      {horizontal
+        ? renderHorizontalBars(points, valRole?.ref ?? '', labelRole?.ref ?? '', variant, selectPoint, frame.width, frame.height, typeScale)
+        : renderVerticalChart(
               points,
               catRole?.ref ?? '',
               valRole?.ref ?? '',
@@ -201,54 +185,8 @@ export const CartesianVisual: React.FC<CartesianVisualProps> = ({ visual, varian
               frame.height,
               typeScale,
             )}
-      </svg>
-    </section>
+    </ChartFrame>
   );
-};
-
-/** Padding/gap del marco escalados al tamaño medido del contenedor. */
-const frameStyle = (typeScale: number): React.CSSProperties => ({
-  backgroundColor: 'var(--dv-card-bg, #ffffff)',
-  border: '1px solid var(--dv-card-border, #d8e0e7)',
-  borderRadius: 6,
-  boxSizing: 'border-box',
-  display: 'flex',
-  flexDirection: 'column',
-  gap: `${3 * typeScale}px`,
-  height: '100%',
-  minHeight: 0,
-  minWidth: 0,
-  overflow: 'hidden',
-  padding: `${6 * typeScale}px`,
-  width: '100%',
-});
-
-const headingStyle = (typeScale: number): React.CSSProperties => ({
-  alignItems: 'center',
-  display: 'flex',
-  flex: '0 0 auto',
-  fontSize: `${Math.max(9, 13 * typeScale)}px`,
-  fontWeight: 600,
-  gap: '0.5rem',
-  justifyContent: 'space-between',
-  lineHeight: 1.2,
-  margin: 0,
-  minWidth: 0,
-  overflow: 'hidden',
-  whiteSpace: 'nowrap',
-});
-
-const headingTitleStyle: React.CSSProperties = {
-  minWidth: 0,
-  overflow: 'hidden',
-  textOverflow: 'ellipsis',
-};
-
-const chartStyle: React.CSSProperties = {
-  display: 'block',
-  flex: '1 1 auto',
-  minHeight: 0,
-  minWidth: 0,
 };
 
 /**
@@ -352,11 +290,16 @@ function renderHorizontalBars(
   points: Point[],
   valueRef: string,
   labelRef: string,
+  variant: CartesianVariant,
   onPointSelect?: (point: Point) => void,
   width = FALLBACK_PLOT.width,
   height = FALLBACK_PLOT.height,
   typeScale = 1,
 ) {
+  if ((variant === 'stacked_bar' || variant === 'percent_stacked_bar')
+    && points.some((point) => point.series !== null && String(point.series).trim() !== '')) {
+    return renderStackedHorizontalBars(points, valueRef, width, height, typeScale, onPointSelect, variant === 'percent_stacked_bar');
+  }
   const MAX_VISIBLE_BARS = 30;
   const visiblePoints = points.length > MAX_VISIBLE_BARS
     ? [...points].sort((leftPoint, rightPoint) => numericY(rightPoint) - numericY(leftPoint)).slice(0, MAX_VISIBLE_BARS)
@@ -441,6 +384,102 @@ function renderHorizontalBars(
         );
       })}
       <line x1={left} y1={height - bottom} x2={width - right} y2={height - bottom} stroke="var(--dv-grid, #c9ced3)" />
+    </g>
+  );
+}
+
+/** Barras horizontales apiladas por serie (stacked_bar con serie presente). */
+function renderStackedHorizontalBars(
+  points: Point[],
+  valueRef: string,
+  width = FALLBACK_PLOT.width,
+  height = FALLBACK_PLOT.height,
+  typeScale = 1,
+  onPointSelect?: (point: Point) => void,
+  percent = false,
+) {
+  const seriesNames = [...new Set(points.map((point) => String(point.series ?? '')).filter((name) => name.trim().length > 0))].sort();
+  const categories = [...new Set(points.map((point) => String(point.x ?? '')).filter(Boolean))];
+  const totals = new Map(categories.map((category) => [
+    category,
+    points
+      .filter((point) => String(point.x ?? '') === category)
+      .reduce((sum, point) => sum + numericY(point), 0),
+  ]));
+  const orderedCategories = [...categories].sort((left, right) => (totals.get(right) ?? 0) - (totals.get(left) ?? 0));
+  const rawMax = Math.max(...orderedCategories.map((category) => totals.get(category) ?? 0), 0);
+  const max = percent ? 1 : niceMax(rawMax);
+  const scaleOf = (category: string) => (percent ? 1 / Math.max(totals.get(category) ?? 0, 1e-9) : 1);
+  const top = 14;
+  const bottom = 32;
+  const band = (height - top - bottom) / Math.max(orderedCategories.length, 1);
+  const barHeight = Math.max(3, Math.min(42, band * 0.62));
+  const labelFontSize = Math.max(9, Math.min(13, band * 0.3));
+  const longest = Math.max(...orderedCategories.map((category) => category.length), 4);
+  const left = Math.min(Math.max(64, Math.min(longest, 18) * labelFontSize * 0.52 + 16), width * 0.4);
+  const right = 16;
+  const innerWidth = width - left - right;
+  const tickCount = Math.max(2, Math.min(6, Math.floor(innerWidth / 70)));
+  const ticks = Array.from({ length: tickCount }, (_, index) => (max * index) / (tickCount - 1));
+  const markCount = points.filter((point) => numericY(point) > 0).length;
+
+  return (
+    <g data-rendered-mark-count={markCount}>
+      {ticks.map((tick) => {
+        const x = left + (tick / max) * innerWidth;
+        return (
+          <g key={tick}>
+            <line x1={x} y1={top} x2={x} y2={height - bottom} stroke="var(--dv-grid, #dde3e9)" strokeDasharray={tick === 0 ? undefined : '3 3'} />
+            <text x={x} y={height - 10} textAnchor="middle" fill="var(--dv-axis-text, #6b7784)" fontSize={Math.max(7, 10 * typeScale)}>
+              {percent ? `${Math.round(tick * 100)}%` : formatAxis(tick, valueRef)}
+            </text>
+          </g>
+        );
+      })}
+      {orderedCategories.map((category, categoryIndex) => {
+        const y = top + categoryIndex * band + (band - barHeight) / 2;
+        let cursor = 0;
+        return (
+          <g key={category}>
+            <text x={left - 8} y={y + barHeight / 2 + labelFontSize * 0.34} textAnchor="end" fill="var(--dv-axis-text, #6b7784)" fontSize={Math.max(7, labelFontSize)}>
+              <title>{category}</title>
+              {truncateLabel(category, 18)}
+            </text>
+            {seriesNames.map((seriesName) => {
+              const point = points.find((candidate) => (
+                String(candidate.x ?? '') === category && String(candidate.series ?? '') === seriesName
+              ));
+              const value = point ? numericY(point) : 0;
+              const scaledCursor = cursor * scaleOf(category);
+              const segmentWidth = (Math.max(0, value) * scaleOf(category) / max) * innerWidth;
+              const segmentLeft = left + (scaledCursor / max) * innerWidth;
+              cursor += value;
+              if (!point || segmentWidth <= 0) {return null;}
+              return (
+                <rect
+                  className={percent ? 'dv-bar dv-bar--percent' : 'dv-bar'}
+                  data-percent-share={percent ? `${Math.round(value * scaleOf(category) * 100)}%` : undefined}
+                  fill={seriesColor(Math.max(0, seriesNames.indexOf(seriesName)))}
+                  height={barHeight}
+                  key={`${category}-${seriesName}`}
+                  onClick={onPointSelect ? () => onPointSelect(point) : undefined}
+                  rx="1.5"
+                  width={segmentWidth}
+                  x={segmentLeft}
+                  y={y}
+                >
+                  <title>{`${category} / ${seriesName}: ${formatAxis(value, valueRef)}`}</title>
+                </rect>
+              );
+            })}
+            <text fill="var(--dv-axis-text, #6b7784)" fontSize={Math.max(7, 9.5 * typeScale)} textAnchor="start" x={Math.min(left + (cursor / max) * innerWidth + 5, width - right - 4)} y={y + barHeight / 2 + 3}>
+              {percent ? '100%' : formatAxis(totals.get(category) ?? 0, valueRef)}
+            </text>
+          </g>
+        );
+      })}
+      <line x1={left} y1={height - bottom} x2={width - right} y2={height - bottom} stroke="var(--dv-grid, #c9ced3)" />
+      {renderSeriesLegend(seriesNames, height, Math.max(7, 9.5 * typeScale))}
     </g>
   );
 }
@@ -588,6 +627,34 @@ function renderVerticalChart(
     );
   }
 
+  if (variant === 'stacked_column' || variant === 'percent_stacked_column') {
+    return renderStackedColumns(ordered, valueRef, {
+      axes, baseline, bottom, bottomLabels, height, innerHeight, innerWidth, left, onPointSelect,
+      right, top, typeScale, width, xAt,
+    }, variant === 'percent_stacked_column');
+  }
+
+  if (variant === 'ribbon') {
+    return renderRibbon(ordered, valueRef, {
+      axes, axisPlan, baseline, bottom, bottomLabels, height, innerHeight, innerWidth, left,
+      onPointSelect, right, top, typeScale, width, xAt,
+    });
+  }
+
+  if (variant === 'waterfall') {
+    return renderWaterfall(ordered, valueRef, {
+      axisPlan, baseline, bottom, bottomLabels, height, innerHeight, innerWidth, left, onPointSelect,
+      right, top, typeScale, width, xAt,
+    });
+  }
+
+  if (variant === 'stacked_area') {
+    return renderStackedArea(ordered, valueRef, {
+      axes, axisPlan, baseline, bottom, bottomLabels, height, innerHeight, innerWidth, left,
+      onPointSelect, right, top, typeScale, width, xAt,
+    });
+  }
+
   if (variant === 'line' || variant === 'area') {
     const path = ordered.map((point, index) => `${xAt(index)},${yAt(numericY(point))}`).join(' ');
     return (
@@ -610,6 +677,39 @@ function renderVerticalChart(
             tabIndex={0}
           />
         ))}
+      </g>
+    );
+  }
+
+  if (variant === 'lollipop') {
+    const stemWidth = 2.5;
+    const barWidthMax = Math.max(3, Math.min(52, (innerWidth / Math.max(ordered.length, 1)) * 0.62));
+    return (
+      <g>
+        {axes}
+        {ordered.map((point, index) => {
+          const x = xAt(index);
+          const value = numericY(point);
+          const y = yAt(value);
+          return (
+            <g
+              aria-label={onPointSelect ? `Select ${String(point.x)}` : undefined}
+              key={point.i}
+              onClick={onPointSelect ? () => onPointSelect(point) : undefined}
+              role={onPointSelect ? 'button' : undefined}
+              style={onPointSelect ? { cursor: 'pointer' } : undefined}
+              tabIndex={onPointSelect ? 0 : undefined}
+            >
+              <line stroke="var(--dv-accent, #4e79a7)" strokeLinecap="round" strokeWidth={stemWidth} x1={x} x2={x} y1={y} y2={baseline}>
+                <title>{`${String(point.x)}: ${formatAxis(value, valueRef)}`}</title>
+              </line>
+              <circle className="dv-lollipop-head" cx={x} cy={y} fill={seriesColor(0)} r={Math.max(3.5, Math.min(6, barWidthMax / 4))}>
+                <title>{`${String(point.x)}: ${formatAxis(value, valueRef)}`}</title>
+              </circle>
+              {!useSeriesTicks && renderBottomAxisLabel(bottomLabels[index] ?? '', index, x, baseline, axisPlan, Math.max(7, 10 * typeScale))}
+            </g>
+          );
+        })}
       </g>
     );
   }
@@ -759,18 +859,6 @@ function renderBottomAxisLabel(
   );
 }
 
-const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-function compactCategoryLabel(label: Scalar): Scalar {
-  if (typeof label !== 'string') {return label;}
-  const quarter = label.match(/^(\d{4})-Q([1-4])$/);
-  if (quarter) {return `Q${quarter[2]} '${quarter[1].slice(-2)}`;}
-  const isoDate = label.match(/^(\d{4})-(\d{2})(?:-(\d{2}))?/);
-  if (!isoDate) {return label;}
-  const month = MONTH_LABELS[Number(isoDate[2]) - 1];
-  return month ? `${month} '${isoDate[1].slice(-2)}` : label;
-}
-
 function orderGroupedPoints(points: Point[]): Point[] {
   if (!points.some((point) => point.series !== null)) {return points;}
   const categories = [...new Set(points.map((point) => String(point.x ?? '')))].filter(Boolean);
@@ -788,49 +876,381 @@ function numericX(point: Point): number {
   return typeof point.x === 'number' && Number.isFinite(point.x) ? point.x : 0;
 }
 
-function niceMax(value: number): number {
-  if (!Number.isFinite(value) || value <= 0) {return 1;}
-  const rawStep = value / 5;
-  const power = 10 ** Math.floor(Math.log10(rawStep));
-  const fraction = rawStep / power;
-  const niceFraction = fraction <= 1 ? 1 : fraction <= 2 ? 2 : fraction <= 5 ? 5 : 10;
-  const step = niceFraction * power;
-  return Math.ceil(value / step) * step;
-}
-
-function isRatioRef(ref: string): boolean {
-  return /(discount|percent|percentage|share|ratio|margin|%)/i.test(ref);
-}
-
-/** Formato compacto sin ceros triviales: $2.5M, $500K (el valor exacto vive en el tooltip). */
-function compactNumber(value: number, options: Intl.NumberFormatOptions): string {
-  const text = new Intl.NumberFormat('en-US', options).format(value);
-  return text.replaceAll(/\.0(?=[KMB])/g, '');
-}
-
-/** Formato de eje: compacto para magnitudes grandes (el valor exacto vive en el tooltip). */
-function formatAxis(value: number, ref: string): string {
-  if (isRatioRef(ref)) {return `${Math.round(value * 100)}%`;}
-  if (/(sales|revenue|amount|cost)/i.test(ref)) {
-    const options: Intl.NumberFormatOptions = { currency: 'USD', maximumFractionDigits: 0, style: 'currency' };
-    if (Math.abs(value) >= 10_000) {
-      return compactNumber(value, { ...options, maximumFractionDigits: 1, notation: 'compact' });
-    }
-    return new Intl.NumberFormat('en-US', options).format(value);
-  }
-  if (Math.abs(value) >= 100_000) {
-    return compactNumber(value, { maximumFractionDigits: 1, notation: 'compact' });
-  }
-  return formatScalar(value);
-}
-
 function formatPercent(value: Scalar): string {
   if (typeof value !== 'number' || !Number.isFinite(value)) {return formatScalar(value);}
   return `${(value * 100).toFixed(1).replace('.', ',')} %`;
 }
 
-const BAR_COLORS = ['#4e79a7', '#f28e2b', '#e15759', '#76b7b2', '#59a14f', '#edc949'];
+/** Barras verticales apiladas por serie (stacked_column con serie presente). */
+function renderStackedColumns(
+  ordered: Point[],
+  valueRef: string,
+  layout: {
+    axes: React.ReactNode;
+    baseline: number;
+    bottom: number;
+    bottomLabels: Scalar[];
+    height: number;
+    innerHeight: number;
+    innerWidth: number;
+    left: number;
+    onPointSelect?: (point: Point) => void;
+    right: number;
+    top: number;
+    typeScale: number;
+    width: number;
+    xAt: (index: number) => number;
+  },
+  percent = false,
+) {
+  const seriesNames = [...new Set(ordered.map((point) => String(point.series ?? '')).filter((name) => name.trim().length > 0))].sort();
+  const categories = [...new Set(ordered.map((point) => String(point.x ?? '')).filter(Boolean))];
+  const totals = new Map(categories.map((category) => [
+    category,
+    ordered
+      .filter((point) => String(point.x ?? '') === category)
+      .reduce((sum, point) => sum + numericY(point), 0),
+  ]));
+  const rawMax = Math.max(...categories.map((category) => totals.get(category) ?? 0), 0);
+  const max = percent ? 1 : niceMax(rawMax);
+  const scaleOf = (category: string) => (percent ? 1 / Math.max(totals.get(category) ?? 0, 1e-9) : 1);
+  const yStack = (value: number) => layout.baseline - (Math.max(0, value) / max) * layout.innerHeight;
+  const barWidth = Math.max(3, Math.min(52, (layout.innerWidth / Math.max(ordered.length, 1)) * 0.62));
+  const categoryStride = Math.max(1, Math.ceil(categories.length / 10));
+  const markCount = ordered.filter((point) => numericY(point) > 0).length;
 
-function seriesColor(index: number): string {
-  return index === 0 ? 'var(--dv-accent, #4e79a7)' : BAR_COLORS[index % BAR_COLORS.length];
+  const percentSteps = Math.max(2, Math.min(5, Math.floor(layout.innerHeight / 30)));
+  const percentTicks: number[] = percent
+    ? Array.from({ length: percentSteps }, (_, index) => index / (percentSteps - 1))
+    : [];
+  return (
+    <g data-rendered-mark-count={markCount}>
+      {percent
+        ? percentTicks.map((tick) => {
+            const y = layout.baseline - tick * layout.innerHeight;
+            return (
+              <g key={tick}>
+                <line x1={layout.left} y1={y} x2={layout.width - layout.right} y2={y} stroke="var(--dv-grid, #e2e7ec)" strokeDasharray={tick === 0 ? undefined : '3 3'} />
+                <text x={layout.left - 6} y={y + 3.5} textAnchor="end" fill="var(--dv-axis-text, #6b7784)" fontSize={Math.max(7, 10 * layout.typeScale)}>
+                  {`${Math.round(tick * 100)}%`}
+                </text>
+              </g>
+            );
+          })
+        : layout.axes}
+      {ordered.map((point, index) => {
+        const select = layout.onPointSelect;
+        const category = String(point.x ?? '');
+        const seriesIndex = Math.max(0, seriesNames.indexOf(String(point.series ?? '')));
+        const peers = ordered.filter((candidate) => String(candidate.x ?? '') === category && numericY(candidate) > 0);
+        const before = peers.slice(0, peers.indexOf(point)).reduce((sum, peer) => sum + numericY(peer), 0);
+        const value = numericY(point);
+        if (value <= 0) {return null;}
+        const categoryScale = scaleOf(category);
+        const yTop = yStack((before + value) * categoryScale);
+        const barHeight = Math.max(0, layout.baseline - yTop);
+        return (
+          <g key={point.i}>
+            <path
+              className={percent ? 'dv-bar dv-bar--percent' : 'dv-bar'}
+              data-percent-share={percent ? `${Math.round(value * categoryScale * 100)}%` : undefined}
+              d={topRoundedBar(layout.xAt(index) - barWidth / 2, yTop, barWidth, barHeight, 2)}
+              fill={seriesColor(seriesIndex)}
+              onClick={select ? () => select(point) : undefined}
+            >
+              <title>{`${category}${point.series === null ? '' : ` / ${String(point.series)}`}: ${formatAxis(value, valueRef)}${percent ? ` (${Math.round(value * categoryScale * 100)}%)` : ''}`}</title>
+            </path>
+          </g>
+        );
+      })}
+      {categories.map((category, categoryIndex) => {
+        if (categoryIndex % categoryStride !== 0) {return null;}
+        const indexes = ordered.flatMap((point, index) => String(point.x ?? '') === category ? [index] : []);
+        const center = indexes.reduce((sum, index) => sum + layout.xAt(index), 0) / Math.max(indexes.length, 1);
+        return (
+          <text key={category} x={center} y={layout.top - 4} textAnchor="middle" fill="var(--dv-axis-text, #6b7784)" fontSize={Math.max(8, 10 * layout.typeScale)}>
+            <title>{`${category}: ${formatAxis(totals.get(category) ?? 0, valueRef)}`}</title>
+            {compactCategoryLabel(category)}
+          </text>
+        );
+      })}
+      {renderSeriesLegend(seriesNames, layout.height, Math.max(7, 9.5 * layout.typeScale))}
+    </g>
+  );
 }
+
+/** Gráfico de cascada: aportes flotantes sobre el acumulado, con soporte de negativos. */
+function renderWaterfall(
+  ordered: Point[],
+  valueRef: string,
+  layout: {
+    axisPlan: AxisDensityPlan;
+    baseline: number;
+    bottom: number;
+    bottomLabels: Scalar[];
+    height: number;
+    innerHeight: number;
+    innerWidth: number;
+    left: number;
+    onPointSelect?: (point: Point) => void;
+    right: number;
+    top: number;
+    typeScale: number;
+    width: number;
+    xAt: (index: number) => number;
+  },
+) {
+  let cumulative = 0;
+  const steps = ordered.map((point) => {
+    const value = numericY(point);
+    const start = cumulative;
+    cumulative += value;
+    return { end: cumulative, point, start, value };
+  });
+  const yMax = niceMax(Math.max(0, ...steps.map((step) => Math.max(step.start, step.end))));
+  const yMin = Math.min(0, ...steps.map((step) => Math.min(step.start, step.end)));
+  const span = Math.max(yMax - yMin, 1);
+  const yAt = (value: number) => layout.baseline - ((value - yMin) / span) * layout.innerHeight;
+  const zeroLine = yAt(0);
+  const tickCount = Math.max(2, Math.min(6, Math.floor(layout.innerHeight / 26)));
+  const ticks = Array.from({ length: tickCount }, (_, index) => yMin + (span * index) / (tickCount - 1));
+  const barWidth = Math.max(4, Math.min(52, (layout.innerWidth / Math.max(ordered.length, 1)) * 0.62));
+
+  return (
+    <g data-rendered-mark-count={steps.length} data-waterfall-min={Math.round(yMin)}>
+      {ticks.map((tick) => {
+        const y = yAt(tick);
+        return (
+          <g key={tick}>
+            <line x1={layout.left} y1={y} x2={layout.width - layout.right} y2={y} stroke="var(--dv-grid, #e2e7ec)" strokeDasharray={Math.abs(tick) < 1e-9 ? undefined : '3 3'} />
+            <text x={layout.left - 6} y={y + 3.5} textAnchor="end" fill="var(--dv-axis-text, #6b7784)" fontSize={Math.max(7, 10 * layout.typeScale)}>
+              {formatAxis(tick, valueRef)}
+            </text>
+          </g>
+        );
+      })}
+      <line x1={layout.left} y1={zeroLine} x2={layout.width - layout.right} y2={zeroLine} stroke="var(--dv-axis-line, #b9c2cb)" />
+      {steps.map((step, index) => {
+        const select = layout.onPointSelect;
+        const x = layout.xAt(index);
+        const yTop = yAt(Math.max(step.start, step.end));
+        const barHeight = Math.max(1, Math.abs(yAt(step.start) - yAt(step.end)));
+        const positive = step.value >= 0;
+        const label = String(step.point.x ?? '');
+        return (
+          <g
+            aria-label={select ? `Select ${label}` : undefined}
+            key={step.point.i}
+            onClick={select ? () => select(step.point) : undefined}
+            onKeyDown={select ? (event) => {
+              if (event.key === 'Enter' || event.key === ' ') {select(step.point);}
+            } : undefined}
+            role={select ? 'button' : undefined}
+            style={select ? { cursor: 'pointer' } : undefined}
+            tabIndex={select ? 0 : undefined}
+          >
+            <rect
+              className="dv-bar"
+              data-waterfall-sign={positive ? 'up' : 'down'}
+              fill={positive ? 'var(--dv-accent, #4e79a7)' : '#e15759'}
+              height={barHeight}
+              rx="1.5"
+              width={barWidth}
+              x={x - barWidth / 2}
+              y={yTop}
+            >
+              <title>{`${label}: ${formatAxis(step.value, valueRef)} (acumulado ${formatAxis(step.end, valueRef)})`}</title>
+            </rect>
+            {index < steps.length - 1 && (
+              <line
+                stroke="var(--dv-grid, #9aa6b2)"
+                strokeDasharray="2 2"
+                x1={x + barWidth / 2}
+                x2={layout.xAt(index + 1) - barWidth / 2}
+                y1={yAt(step.end)}
+                y2={yAt(step.end)}
+              />
+            )}
+            {renderBottomAxisLabel(layout.bottomLabels[index] ?? label, index, x, layout.baseline, layout.axisPlan, Math.max(7, 10 * layout.typeScale))}
+          </g>
+        );
+      })}
+    </g>
+  );
+}
+
+interface ColumnLayout {
+  axisPlan: AxisDensityPlan;
+  axes?: React.ReactNode;
+  baseline: number;
+  bottom: number;
+  bottomLabels: Scalar[];
+  height: number;
+  innerHeight: number;
+  innerWidth: number;
+  left: number;
+  onPointSelect?: (point: Point) => void;
+  right: number;
+  top: number;
+  typeScale: number;
+  width: number;
+  xAt: (index: number) => number;
+}
+
+/** Segmento de una categoría: serie, valor y posición apilada (rank descendente). */
+interface RibbonSegment {
+  after: number;
+  before: number;
+  series: string;
+  value: number;
+}
+
+/**
+ * Gráfico de cintas (PBI ribbon): columnas apiladas con segmentos ordenados por
+ * rank dentro de cada categoría y bandas que conectan la misma serie entre
+ * categorías adyacentes. Versión estática: la animación de PBI no aplica.
+ */
+function renderRibbon(ordered: Point[], valueRef: string, layout: ColumnLayout) {
+  const seriesNames = [...new Set(ordered.map((point) => String(point.series ?? '')).filter((name) => name.trim().length > 0))].sort();
+  const categories = [...new Set(ordered.map((point) => String(point.x ?? '')).filter(Boolean))];
+  const valueOf = (category: string, series: string) => {
+    const point = ordered.find((candidate) => String(candidate.x ?? '') === category && String(candidate.series ?? '') === series);
+    return point ? numericY(point) : 0;
+  };
+  const segmentsByCategory = categories.map((category) => {
+    const ranked = seriesNames
+      .map((series) => ({ series, value: valueOf(category, series) }))
+      .sort((left, right) => right.value - left.value);
+    let cursor = 0;
+    const segments: RibbonSegment[] = ranked.map((entry) => {
+      const segment = { after: cursor + entry.value, before: cursor, series: entry.series, value: entry.value };
+      cursor += entry.value;
+      return segment;
+    });
+    return { category, segments, total: cursor };
+  });
+  const max = niceMax(Math.max(...segmentsByCategory.map((entry) => entry.total), 0));
+  const yAt = (value: number) => layout.baseline - (Math.max(0, value) / max) * layout.innerHeight;
+  const columnWidth = Math.max(10, Math.min(56, (layout.innerWidth / Math.max(categories.length, 1)) * 0.42));
+  const xCenter = (categoryIndex: number) => layout.left + ((categoryIndex + 0.5) / Math.max(categories.length, 1)) * layout.innerWidth;
+  const segmentOf = (categoryIndex: number, series: string) => (
+    segmentsByCategory[categoryIndex]?.segments.find((segment) => segment.series === series)
+  );
+  let bandCount = 0;
+
+  return (
+    <g data-ribbon-categories={categories.length} data-rendered-mark-count={ordered.filter((point) => numericY(point) > 0).length}>
+      {layout.axes}
+      {categories.slice(0, -1).map((category, categoryIndex) => {
+        const leftX = xCenter(categoryIndex) + columnWidth / 2;
+        const rightX = xCenter(categoryIndex + 1) - columnWidth / 2;
+        return seriesNames.map((series) => {
+          const leftSegment = segmentOf(categoryIndex, series);
+          const rightSegment = segmentOf(categoryIndex + 1, series);
+          if (!leftSegment && !rightSegment) {return null;}
+          const leftBefore = leftSegment?.before ?? 0;
+          const leftAfter = leftSegment?.after ?? 0;
+          const rightBefore = rightSegment?.before ?? 0;
+          const rightAfter = rightSegment?.after ?? 0;
+          bandCount += 1;
+          return (
+            <polygon
+              className="dv-ribbon-band"
+              data-ribbon-series={series}
+              fill={seriesColor(Math.max(0, seriesNames.indexOf(series)))}
+              fillOpacity="0.3"
+              key={`${category}-${series}`}
+              points={`${leftX},${yAt(leftBefore)} ${rightX},${yAt(rightBefore)} ${rightX},${yAt(rightAfter)} ${leftX},${yAt(leftAfter)}`}
+            >
+              <title>{`${category} → ${categories[categoryIndex + 1] ?? ''} · ${series}: ${formatAxis(leftSegment?.value ?? 0, valueRef)} → ${formatAxis(rightSegment?.value ?? 0, valueRef)}`}</title>
+            </polygon>
+          );
+        });
+      })}
+      {segmentsByCategory.map((entry, categoryIndex) => {
+        const x = xCenter(categoryIndex);
+        return (
+          <g key={entry.category}>
+            {entry.segments.map((segment) => {
+              if (segment.value <= 0) {return null;}
+              const yTop = yAt(segment.after);
+              const barHeight = Math.max(1, layout.baseline - yTop);
+              return (
+                <rect
+                  className="dv-bar dv-ribbon-column"
+                  fill={seriesColor(Math.max(0, seriesNames.indexOf(segment.series)))}
+                  height={barHeight}
+                  key={segment.series}
+                  width={columnWidth}
+                  x={x - columnWidth / 2}
+                  y={yTop}
+                >
+                  <title>{`${entry.category} / ${segment.series}: ${formatAxis(segment.value, valueRef)}`}</title>
+                </rect>
+              );
+            })}
+            <text textAnchor="middle" x={x} y={layout.baseline + 14} fill="var(--dv-axis-text, #6b7784)" fontSize={Math.max(7, 10 * layout.typeScale)}>
+              <title>{entry.category}</title>
+              {truncateLabel(compactCategoryLabel(entry.category), 12)}
+            </text>
+          </g>
+        );
+      })}
+      {renderSeriesLegend(seriesNames, layout.height, Math.max(7, 9.5 * layout.typeScale))}
+      <g data-ribbon-bands={bandCount} />
+    </g>
+  );
+}
+
+/** Área apilada (PBI/Tableau stacked area): bandas acumuladas por serie sobre el eje temporal. */
+function renderStackedArea(ordered: Point[], valueRef: string, layout: ColumnLayout) {
+  const seriesNames = [...new Set(ordered.map((point) => String(point.series ?? '')).filter((name) => name.trim().length > 0))].sort();
+  const categories = [...new Set(ordered.map((point) => String(point.x ?? '')).filter(Boolean))];
+  const valueOf = (category: string, series: string) => {
+    const point = ordered.find((candidate) => String(candidate.x ?? '') === category && String(candidate.series ?? '') === series);
+    return point ? numericY(point) : 0;
+  };
+  const cumulative = categories.map((category) => {
+    let cursor = 0;
+    return seriesNames.map((series) => {
+      cursor += valueOf(category, series);
+      return cursor;
+    });
+  });
+  const maxCum = niceMax(Math.max(...cumulative.map((row) => row[row.length - 1] ?? 0), 0));
+  const yAt = (value: number) => layout.baseline - (Math.max(0, value) / maxCum) * layout.innerHeight;
+  const xAt2 = (categoryIndex: number) => layout.left + ((categoryIndex + 0.5) / Math.max(categories.length, 1)) * layout.innerWidth;
+
+  return (
+    <g data-stacked-area-series={seriesNames.length} data-rendered-mark-count={ordered.length}>
+      {layout.axes}
+      {seriesNames.map((series, seriesIndex) => {
+        const topPoints = categories.map((_, categoryIndex) => {
+          const cum = cumulative[categoryIndex]?.[seriesIndex] ?? 0;
+          return `${xAt2(categoryIndex)},${yAt(cum)}`;
+        });
+        const bottomPoints = categories.map((_, categoryIndex) => {
+          const cumBelow = seriesIndex > 0 ? cumulative[categoryIndex]?.[seriesIndex - 1] ?? 0 : 0;
+          return `${xAt2(categoryIndex)},${yAt(cumBelow)}`;
+        });
+        const polygon = `${topPoints.join(' ')} ${[...bottomPoints].reverse().join(' ')}`;
+        return (
+          <g key={series}>
+            <polygon className="dv-stacked-area-band" data-stacked-area-series={series} fill={seriesColor(seriesIndex)} fillOpacity="0.55" points={polygon}>
+              <title>{`${series}: máx ${formatAxis(Math.max(...categories.map((_, categoryIndex) => cumulative[categoryIndex]?.[seriesIndex] ?? 0)), valueRef)} acumulado`}</title>
+            </polygon>
+            <polyline fill="none" points={topPoints.join(' ')} stroke={seriesColor(seriesIndex)} strokeWidth="1.5" />
+          </g>
+        );
+      })}
+      {categories.map((category, categoryIndex) => (
+        <text key={category} textAnchor="middle" x={xAt2(categoryIndex)} y={layout.baseline + 14} fill="var(--dv-axis-text, #6b7784)" fontSize={Math.max(7, 10 * layout.typeScale)}>
+          <title>{category}</title>
+          {truncateLabel(String(compactCategoryLabel(category)), 12)}
+        </text>
+      ))}
+      {renderSeriesLegend(seriesNames, layout.height, Math.max(7, 9.5 * layout.typeScale))}
+    </g>
+  );
+}
+

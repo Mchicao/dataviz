@@ -2,13 +2,17 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from typing import Any
 
-from apps.dataviz_service.runtime.errors import RuntimeMaterializationError
+from apps.dataviz_service.runtime.errors import (
+    RuntimeMaterializationError,
+    SemanticRLSUnavailableError,
+)
 from apps.dataviz_service.runtime.executor import QueryExecutor
 from core.compilers.render_plan import RenderPlan, VisualSpec
 from core.contracts.dataset import Dataset
+from core.contracts.query_ast import QuerySpec
 from core.contracts.semantic_ir import SemanticModel
 
 
@@ -18,14 +22,17 @@ def materialize_runtime_results(
     datasets: Mapping[str, Dataset],
     *,
     parameters: Mapping[str, object] | None = None,
+    query_runner: Callable[[QuerySpec], Dataset] | None = None,
 ) -> dict[str, Any]:
     """Ejecuta cada consulta y conserva resultados aislados por visual."""
+    if model.rls_intents and query_runner is None:
+        raise SemanticRLSUnavailableError("RLS materialization requires an authorized query runner.")
     executor = QueryExecutor(model, parameters)
     visual_results: dict[str, dict[str, object]] = {}
     forecast_models: dict[str, dict[str, object]] = {}
     for visual in plan.visuals:
         visual_results[visual.name], model_metadata = _materialize_visual(
-            visual, executor, datasets
+            visual, executor, datasets, query_runner
         )
         if model_metadata is not None:
             forecast_models[visual.name] = model_metadata
@@ -40,16 +47,20 @@ def _materialize_visual(
     visual: VisualSpec,
     executor: QueryExecutor,
     datasets: Mapping[str, Dataset],
+    query_runner: Callable[[QuerySpec], Dataset] | None = None,
 ) -> tuple[dict[str, object], dict[str, object] | None]:
     resolved: dict[str, object] = {}
     query_result: Dataset | None = None
     if visual.query is not None:
-        dataset = datasets.get(visual.query.from_datasource)
-        if dataset is None:
-            raise RuntimeMaterializationError(
-                f"Datasource {visual.query.from_datasource!r} is not materialized"
-            )
-        query_result = executor.execute(visual.query, dataset)
+        if query_runner is not None:
+            query_result = query_runner(visual.query)
+        else:
+            dataset = datasets.get(visual.query.from_datasource)
+            if dataset is None:
+                raise RuntimeMaterializationError(
+                    f"Datasource {visual.query.from_datasource!r} is not materialized"
+                )
+            query_result = executor.execute(visual.query, dataset)
     forecast_metadata: dict[str, object] | None = None
     if visual.forecast is not None:
         from core.forecast import execute_forecast

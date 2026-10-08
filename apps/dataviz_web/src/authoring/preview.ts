@@ -10,7 +10,9 @@ const categories = ['Tecnología', 'Oficina', 'Mobiliario', 'Servicios', 'Tecnol
 const samples: Record<string, readonly Scalar[] | Scalar> = {
   'field:Category': categories,
   'field:OrderDate': dates,
+  'field:Profit': [12400, 16800, 9900, 23100, 17200, 26800],
   'field:Region': regions,
+  'field:Sales': [182000, 224000, 198000, 276000, 241000, 309000],
   'field:Segment': ['Consumo', 'Empresa', 'Pyme', 'Gobierno', 'Consumo', 'Empresa'],
   'measure:Orders': [312, 377, 341, 429, 398, 476],
   'measure:Profit': [24000, 31000, 22000, 44000, 36000, 51000],
@@ -54,6 +56,9 @@ export function previewResultsFor(
 /**
  * Series de un visual con datos locales o sintéticos. Con categoría + medida, ambas series
  * se agregan por categoría única para que el chart y las tarjetas muestren los mismos totales.
+ * Con una segunda dimensión (serie) se agrega por par categoría×serie para que los gráficos
+ * apilados/agrupados muestren un punto por segmento real. El heatmap recibe las columnas
+ * crudas: la cuadrícula fila×columna se agrega en su propio renderer.
  */
 function groupedSeriesFor(
   visual: VisualLayoutSpec,
@@ -61,6 +66,7 @@ function groupedSeriesFor(
 ): Record<string, Scalar | readonly Scalar[]> {
   const roles = Object.values(visual.data_roles);
 
+  if (visual.kind === 'heatmap') {return base;}
   const categoryRef = roles.find((ref) => ref.startsWith('field:'));
   if (isScalarVisual(visual.kind) || !categoryRef
     || !roles.some((ref) => ref.startsWith('measure:'))) {
@@ -69,6 +75,43 @@ function groupedSeriesFor(
 
   const categories = base[categoryRef];
   if (!Array.isArray(categories)) {return base;}
+
+  const seriesRef = roles.find((ref) => ref.startsWith('field:') && ref !== categoryRef);
+  const seriesColumn = seriesRef ? base[seriesRef] : undefined;
+  if (seriesRef && Array.isArray(seriesColumn)) {
+    const firstIndexOfPair = new Map<string, { category: string; series: string }>();
+    for (let index = 0; index < categories.length; index += 1) {
+      const category = categories[index];
+      const series = seriesColumn[index];
+      if (category === null || series === null) {continue;}
+      const key = `${String(category)}\u0000${String(series)}`;
+      if (!firstIndexOfPair.has(key)) {
+        firstIndexOfPair.set(key, { category: String(category), series: String(series) });
+      }
+    }
+    const pairs = [...firstIndexOfPair.values()];
+    const groupedPairs: Record<string, Scalar | readonly Scalar[]> = {
+      [categoryRef]: pairs.map((pair) => pair.category),
+      [seriesRef]: pairs.map((pair) => pair.series),
+    };
+    for (const ref of roles) {
+      if (ref === categoryRef || ref === seriesRef || !ref.startsWith('measure:')) {continue;}
+      const values = base[ref];
+      if (!Array.isArray(values)) {groupedPairs[ref] = values; continue;}
+      const totals = new Map<string, number>([...firstIndexOfPair.keys()].map((key) => [key, 0]));
+      for (let index = 0; index < categories.length; index += 1) {
+        const category = categories[index];
+        const series = seriesColumn[index];
+        const value = values[index];
+        if (category === null || series === null || typeof value !== 'number') {continue;}
+        const key = `${String(category)}\u0000${String(series)}`;
+        totals.set(key, (totals.get(key) ?? 0) + value);
+      }
+      groupedPairs[ref] = pairs.map((pair) => totals.get(`${pair.category}\u0000${pair.series}`) ?? 0);
+    }
+    return groupedPairs;
+  }
+
   const firstIndexOfCategory = new Map<string, number>();
   for (let index = 0; index < categories.length; index += 1) {
     const category = categories[index];
@@ -127,7 +170,7 @@ function datasetValue(
 }
 
 function isScalarVisual(kind: string): boolean {
-  return kind === 'card' || kind === 'kpi';
+  return kind === 'card' || kind === 'kpi' || kind === 'gauge';
 }
 
 function aggregateSourceField(expression: Expression): string | null {

@@ -12,6 +12,16 @@ import { SlicerVisual } from './SlicerVisual';
 import { TextVisual } from './TextVisual';
 import { CircularVisual } from './CircularVisual';
 import { TreemapVisual } from './TreemapVisual';
+import { FunnelVisual } from './FunnelVisual';
+import { GaugeVisual } from './GaugeVisual';
+import { HeatmapVisual } from './HeatmapVisual';
+import { HistogramVisual } from './HistogramVisual';
+import { BoxPlotVisual } from './BoxPlotVisual';
+import { ParetoVisual } from './ParetoVisual';
+import { ComboVisual } from './ComboVisual';
+import { BulletVisual } from './BulletVisual';
+import { PackedBubblesVisual } from './PackedBubblesVisual';
+import { GanttVisual } from './GanttVisual';
 
 import { MatrixVisual } from '../advanced/MatrixVisual';
 import { MapVisualAdvanced } from '../advanced/MapVisualAdvanced';
@@ -26,20 +36,38 @@ import { CustomVisual } from '../custom/CustomVisual';
 const REGISTRY: Record<string, React.FC<VisualProps>> = {
   area: (props) => <CartesianVisual {...props} variant="area" />,
   bar: (props) => <CartesianVisual {...props} variant="bar" />,
+  box_plot: BoxPlotVisual,
+  bullet: BulletVisual,
   card: CardVisual,
   column: (props) => <CartesianVisual {...props} variant="column" />,
+  combo: ComboVisual,
   custom_visual: CustomVisual,
   donut: (props) => <CircularVisual {...props} variant="donut" />,
+  funnel: FunnelVisual,
+  gantt: GanttVisual,
+  gauge: GaugeVisual,
+  heatmap: HeatmapVisual,
+  histogram: HistogramVisual,
   kpi: CardVisual,
   line: (props) => <CartesianVisual {...props} variant="line" />,
+  lollipop: (props) => <CartesianVisual {...props} variant="lollipop" />,
   map: MapVisualAdvanced,
   matrix: MatrixVisual,
+  packed_bubbles: PackedBubblesVisual,
+  pareto: ParetoVisual,
+  percent_stacked_bar: (props) => <CartesianVisual {...props} variant="percent_stacked_bar" />,
+  percent_stacked_column: (props) => <CartesianVisual {...props} variant="percent_stacked_column" />,
   pie: (props) => <CircularVisual {...props} variant="pie" />,
+  ribbon: (props) => <CartesianVisual {...props} variant="ribbon" />,
   scatter: (props) => <CartesianVisual {...props} variant="scatter" />,
   slicer: SlicerVisual,
+  stacked_area: (props) => <CartesianVisual {...props} variant="stacked_area" />,
+  stacked_bar: (props) => <CartesianVisual {...props} variant="stacked_bar" />,
+  stacked_column: (props) => <CartesianVisual {...props} variant="stacked_column" />,
   table: TableVisual,
   text_box: TextVisual,
   treemap: TreemapVisual,
+  waterfall: (props) => <CartesianVisual {...props} variant="waterfall" />,
 };
 
 /**

@@ -1312,20 +1312,91 @@ function defaultBindingForModel(kind: string, model: Document['versions'][number
 } {
   const entity = model.entities.find((candidate) => !candidate.hidden) ?? model.entities[0];
   const fields = entity?.fields.filter((field) => !field.hidden) ?? [];
-  const dimension = fields.find((field) => (
+  const dimensions = fields.filter((field) => (
     field.data_type === 'string' || field.data_type === 'date'
     || field.data_type === 'datetime' || field.data_type === 'boolean'
-  )) ?? fields[0];
-  const metric = model.metrics.find((candidate) => !candidate.hidden) ?? model.metrics[0];
+  ));
+  const dimension = dimensions[0] ?? fields[0];
+  const secondDimension = dimensions.find((candidate) => candidate !== dimension) ?? dimension;
+  const numericField = fields.find((field) => field.data_type === 'integer' || field.data_type === 'decimal');
+  const metrics = model.metrics.filter((candidate) => !candidate.hidden);
+  const metric = metrics[0];
+  const secondMetric = metrics.find((candidate) => candidate !== metric) ?? metric;
   const valueRef = metric
     ? `measure:${metric.name}`
     : dimension
       ? `field:${dimension.name}`
       : 'measure:Sales';
   const dimensionRef = dimension ? `field:${dimension.name}` : 'field:Region';
-  const dataRoles: Record<string, string> = kind === 'card' || kind === 'kpi'
-    ? { value: valueRef }
-    : { category: dimensionRef, value: valueRef };
+  const secondDimensionRef = secondDimension ? `field:${secondDimension.name}` : dimensionRef;
+  const secondValueRef = secondMetric
+    ? `measure:${secondMetric.name}`
+    : numericField
+      ? `field:${numericField.name}`
+      : valueRef;
+  const rawValueRef = numericField ? `field:${numericField.name}` : valueRef;
+  const dataRoles: Record<string, string> = (() => {
+    switch (kind) {
+      case 'card': case 'kpi': case 'gauge': {
+        const roles: Record<string, string> = { value: valueRef };
+        if (kind === 'gauge') {roles.target_metric = secondValueRef;}
+        return roles;
+      }
+      case 'bullet': {
+        return { category: dimensionRef, comparison_metric: secondValueRef, value: valueRef };
+      }
+      case 'combo': {
+        return { category: dimensionRef, comparison_metric: secondValueRef, value: valueRef };
+      }
+      case 'heatmap': {
+        return { column: secondDimensionRef, row: dimensionRef, value: valueRef };
+      }
+      case 'matrix': {
+        return { column: secondDimensionRef, row: dimensionRef, value: valueRef };
+      }
+      case 'histogram': {
+        return { value: rawValueRef };
+      }
+      case 'box_plot': {
+        return { category: dimensionRef, value: rawValueRef };
+      }
+      case 'stacked_bar': {
+        return { category: dimensionRef, series: secondDimensionRef, value: valueRef };
+      }
+      case 'stacked_column': {
+        return { category: dimensionRef, series: secondDimensionRef, value: valueRef };
+      }
+      case 'percent_stacked_bar': {
+        return { category: dimensionRef, series: secondDimensionRef, value: valueRef };
+      }
+      case 'percent_stacked_column': {
+        return { category: dimensionRef, series: secondDimensionRef, value: valueRef };
+      }
+      case 'stacked_area': {
+        return { category: dimensionRef, series: secondDimensionRef, value: valueRef };
+      }
+      case 'ribbon': {
+        return { category: dimensionRef, series: secondDimensionRef, value: valueRef };
+      }
+      case 'packed_bubbles': {
+        return { category: dimensionRef, value: valueRef };
+      }
+      case 'gantt': {
+        const dateDimension = dimensions.find((candidate) => candidate.data_type === 'date' || candidate.data_type === 'datetime') ?? dimension;
+        return {
+          category: dimensionRef,
+          value: rawValueRef,
+          x_axis: dateDimension ? `field:${dateDimension.name}` : dimensionRef,
+        };
+      }
+      case 'slicer': {
+        return { category: dimensionRef };
+      }
+      default: {
+        return { category: dimensionRef, value: valueRef };
+      }
+    }
+  })();
   return {
     dataRoles,
     title: metric?.name.replaceAll('_', ' ') ?? dimension?.name.replaceAll('_', ' ') ?? 'Nuevo visual',

@@ -2,9 +2,11 @@ import { readFile, readdir } from 'node:fs/promises';
 import { gzipSync } from 'node:zlib';
 
 const budgets = [
-  // 228 KiB: effect 4.0.1 añadió ~0.1 KiB al paquete viewer (226 → 226.07).
-  { file: 'dist/dataviz-web.es.js', gzip: 64 * 1024, raw: 228 * 1024 },
-  { file: 'dist/dataviz-web.umd.js', gzip: 57 * 1024, raw: 176 * 1024 },
+  // 2026-10-08: los 13 renderers nativos nuevos (embudo, gauge, heatmap,
+  // histograma, caja y bigotes, pareto, combo, bullet, cascada, paleta,
+  // barras/columnas apiladas) crecen el viewer ~7 KiB gzip (64 → 70.86).
+  { file: 'dist/dataviz-web.es.js', gzip: 76 * 1024, raw: 280 * 1024 },
+  { file: 'dist/dataviz-web.umd.js', gzip: 68 * 1024, raw: 224 * 1024 },
   { file: 'dist/studio/dataviz-studio.js', gzip: 70 * 1024, raw: 260 * 1024 },
 ];
 

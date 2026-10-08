@@ -46,6 +46,15 @@ from core.contracts.presentation_ir import PresentationIR
 from core.contracts.provenance import OriginKind
 from core.contracts.semantic_ir import Grain, SemanticModel
 
+_INSIGHT_VISIBILITY_SQL = """(
+    asset_kind <> 'insight' OR EXISTS (
+        SELECT 1 FROM versions v
+        WHERE v.tenant_id = knowledge_assets.tenant_id
+          AND v.id = knowledge_assets.canonical_version_id
+          AND v.semantic_model -> 'rls_intents' = '[]'::jsonb
+    )
+)"""
+
 __all__ = ["PostgresKnowledgeRegistry"]
 
 
@@ -222,7 +231,8 @@ class PostgresKnowledgeRegistry:
     def get_asset(self, tenant_id: str, asset_id: str) -> KnowledgeAsset | None:
         with self._store.transaction(tenant_id) as cursor:
             cursor.execute(
-                "SELECT * FROM knowledge_assets WHERE tenant_id=%s AND asset_id=%s",
+                "SELECT * FROM knowledge_assets WHERE tenant_id=%s AND asset_id=%s AND "
+                + _INSIGHT_VISIBILITY_SQL,
                 (tenant_id, asset_id),
             )
             row = cursor.fetchone()
@@ -265,6 +275,7 @@ class PostgresKnowledgeRegistry:
             cursor.execute(
                 "SELECT * FROM knowledge_assets"
                 " WHERE tenant_id=%s AND state<>'deleted'"
+                + " AND " + _INSIGHT_VISIBILITY_SQL
                 + kind_clause
                 + " ORDER BY asset_id LIMIT %s OFFSET %s",
                 params,
@@ -1079,9 +1090,11 @@ class PostgresKnowledgeRegistry:
         self, insight: InsightRecord, *, canonical_version_id: str
     ) -> InsightRecord:
         with self._store.transaction(insight.tenant_id) as cursor:
-            self._assert_projection_version(
+            _, semantic = self._assert_projection_version(
                 cursor, insight.tenant_id, canonical_version_id, insight.ir_version
             )
+            if semantic.rls_intents:
+                raise ValueError("RLS insights require a persisted per-principal security scope.")
             cursor.execute(
                 """SELECT canonical_version_id FROM knowledge_metric_registry
                    WHERE tenant_id=%s AND metric_id=%s""",
@@ -1169,6 +1182,9 @@ class PostgresKnowledgeRegistry:
             metric = cursor.fetchone()
             if metric is None:
                 raise ValueError("metric not found in tenant")
+            _, semantic, _, _ = self._version_snapshot(
+                cursor, tenant_id, metric["canonical_version_id"],
+            )
             cursor.execute(
                 """SELECT edge_id, from_asset_id, edge_kind, evidence_ref
                    FROM knowledge_lineage_edges
@@ -1177,15 +1193,17 @@ class PostgresKnowledgeRegistry:
                 (tenant_id, metric["asset_id"]),
             )
             usages = [dict(row) for row in cursor.fetchall()]
-            cursor.execute(
-                """SELECT insight_id, statement, grain, filter_context, time_range,
-                          certification, as_of
-                   FROM knowledge_insights
-                   WHERE tenant_id=%s AND metric_ref=%s
-                   ORDER BY as_of DESC""",
-                (tenant_id, metric_id),
-            )
-            insights = [dict(row) for row in cursor.fetchall()]
+            insights = []
+            if not semantic.rls_intents:
+                cursor.execute(
+                    """SELECT insight_id, statement, grain, filter_context, time_range,
+                              certification, as_of
+                       FROM knowledge_insights
+                       WHERE tenant_id=%s AND metric_ref=%s
+                       ORDER BY as_of DESC""",
+                    (tenant_id, metric_id),
+                )
+                insights = [dict(row) for row in cursor.fetchall()]
             cursor.execute(
                 """SELECT rule_id, node_path, statement, references_rls, owner
                    FROM knowledge_business_rules

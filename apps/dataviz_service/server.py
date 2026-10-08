@@ -77,12 +77,15 @@ class RuntimeStore(Protocol):
         self, tenant_id: str, principal_id: str, project_id: str, version_id: str
     ) -> bool: ...
 
-    def get_runtime_payload(self, tenant_id: str, version_id: str) -> dict[str, Any]: ...
+    def get_runtime_payload(
+        self, tenant_id: str, version_id: str, *, principal: Principal | None = None,
+    ) -> dict[str, Any]: ...
 
     def consume_api_request(self, tenant_id: str) -> None: ...
 
     def execute_query(
-        self, tenant_id: str, version_id: str, query: QuerySpec
+        self, tenant_id: str, version_id: str, query: QuerySpec,
+        *, principal: Principal | None = None,
     ) -> Dataset | dict[str, Any]: ...
 
     def enqueue_job(
@@ -116,6 +119,7 @@ class RuntimeStore(Protocol):
         presentation_ops: list[PresentationOperation],
         interaction_ops: list[InteractionOperation],
         message: str = "",
+        can_manage_rls: bool = False,
     ) -> Any: ...
 
     def rollback_authoring_to_draft(
@@ -129,6 +133,7 @@ class RuntimeStore(Protocol):
         base_checksum: str,
         target_version: int,
         message: str = "",
+        can_manage_rls: bool = False,
     ) -> Any: ...
 
 
@@ -289,9 +294,16 @@ def create_app(
             # No distingue recurso inexistente de recurso ajeno: evita enumeración.
             return _error(HTTP_403_FORBIDDEN, "ACCESS_DENIED")
         try:
-            payload = store.get_runtime_payload(principal.tenant_id, version_id)
+            payload = store.get_runtime_payload(principal.tenant_id, version_id, principal=principal)
         except SemanticRLSUnavailableError:
             return _error(HTTP_403_FORBIDDEN, "SEMANTIC_RLS_UNAVAILABLE")
+        except QueryInputTooLargeError:
+            return _error(HTTP_413_CONTENT_TOO_LARGE, "QUERY_INPUT_TOO_LARGE")
+        except OpaqueDAXExecutionUnavailableError:
+            return _error(409, "OPAQUE_DAX_EXECUTION_UNAVAILABLE")
+        except RuntimeMaterializationError:
+            logger.exception("Persisted materialization invalid version_id=%s", version_id)
+            return _error(500, "RUNTIME_MATERIALIZATION_ERROR")
         if payload.get("plan") is None or payload.get("results") is None:
             return _error(409, "RUNTIME_NOT_MATERIALIZED")
         # credential_scan es opcional: puede no existir si el job se ejecutó
@@ -300,7 +312,9 @@ def create_app(
         body = {"plan": payload["plan"], "results": payload["results"]}
         if credential_scan is not None:
             body["credential_scan"] = credential_scan
-        return JSONResponse(JsonModelEncoder.encode(body))
+        return JSONResponse(JsonModelEncoder.encode(body), headers={
+            "Cache-Control": "private, no-store", "Vary": "Authorization",
+        })
 
     async def query(request: Request) -> Response:
         principal = _authenticate(request, verifier)
@@ -334,7 +348,8 @@ def create_app(
 
         try:
             result = await run_in_threadpool(
-                store.execute_query, principal.tenant_id, version_id, planned.query
+                store.execute_query, principal.tenant_id, version_id, planned.query,
+                principal=principal,
             )
         except ResourceNotFoundError:
             return _error(HTTP_403_FORBIDDEN, "ACCESS_DENIED")
@@ -355,7 +370,9 @@ def create_app(
             logger.exception("Query execution error version_id=%s", version_id)
             return _error(400, "QUERY_EXECUTION_ERROR")
 
-        return JSONResponse(JsonModelEncoder.encode(result))
+        return JSONResponse(JsonModelEncoder.encode(result), headers={
+            "Cache-Control": "private, no-store", "Vary": "Authorization",
+        })
 
     async def authoring_state(request: Request) -> Response:
         principal = _authenticate(request, verifier)

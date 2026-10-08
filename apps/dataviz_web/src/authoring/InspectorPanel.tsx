@@ -15,9 +15,17 @@ interface InspectorPanelProps {
 }
 
 const VISUAL_KINDS = [
-  ['card', 'KPI'], ['bar', 'Barras'], ['column', 'Columnas'], ['line', 'Línea'],
-  ['area', 'Área'], ['pie', 'Torta'], ['donut', 'Dona'], ['scatter', 'Dispersión'],
-  ['table', 'Tabla'],
+  ['card', 'KPI'], ['bar', 'Barras'], ['stacked_bar', 'Barras apiladas'],
+  ['percent_stacked_bar', 'Barras 100%'], ['column', 'Columnas'],
+  ['stacked_column', 'Columnas apiladas'], ['percent_stacked_column', 'Columnas 100%'],
+  ['line', 'Línea'], ['area', 'Área'], ['stacked_area', 'Área apilada'],
+  ['combo', 'Combinado'], ['ribbon', 'Cintas'], ['pie', 'Torta'], ['donut', 'Dona'],
+  ['scatter', 'Dispersión'], ['lollipop', 'Paleta'], ['table', 'Tabla'], ['matrix', 'Matriz'],
+  ['treemap', 'Treemap'], ['heatmap', 'Mapa de calor'], ['histogram', 'Histograma'],
+  ['box_plot', 'Caja y bigotes'], ['bullet', 'Bullet'], ['pareto', 'Pareto'],
+  ['waterfall', 'Cascada'], ['funnel', 'Embudo'], ['gauge', 'Indicador'],
+  ['packed_bubbles', 'Burbujas'], ['gantt', 'Gantt'],
+  ['map', 'Mapa'], ['slicer', 'Segmentador'],
 ] as const;
 
 interface FieldWell {
@@ -27,32 +35,86 @@ interface FieldWell {
   optional?: boolean;
 }
 
+const cartesianWells = (xLabel: string, yLabel: string): readonly FieldWell[] => [
+  { role: 'category', label: xLabel, source: 'fields' },
+  { role: 'value', label: yLabel, source: 'values' },
+  { role: 'series', label: 'Serie · leyenda', source: 'fields', optional: true },
+];
+
 const FIELD_WELLS: Record<string, readonly FieldWell[]> = {
   area: [
     { role: 'category', label: 'Eje X · periodo', source: 'fields' },
     { role: 'value', label: 'Eje Y · valores', source: 'values' },
     { role: 'series', label: 'Serie', source: 'fields', optional: true },
   ],
-  bar: [
-    { role: 'category', label: 'Eje X · categoría', source: 'fields' },
-    { role: 'value', label: 'Eje Y · valores', source: 'values' },
-    { role: 'series', label: 'Serie · leyenda', source: 'fields', optional: true },
+  bar: cartesianWells('Eje X · categoría', 'Eje Y · valores'),
+  box_plot: [
+    { role: 'category', label: 'Eje X · categoría', source: 'fields', optional: true },
+    { role: 'value', label: 'Valores · distribución', source: 'values' },
+  ],
+  bullet: [
+    { role: 'category', label: 'Filas · categoría', source: 'fields', optional: true },
+    { role: 'value', label: 'Valores', source: 'values' },
+    { role: 'comparison_metric', label: 'Objetivo', source: 'values' },
   ],
   card: [{ role: 'value', label: 'Valores', source: 'values' }],
-  column: [
+  column: cartesianWells('Eje X · categoría', 'Eje Y · valores'),
+  combo: [
     { role: 'category', label: 'Eje X · categoría', source: 'fields' },
-    { role: 'value', label: 'Eje Y · valores', source: 'values' },
-    { role: 'series', label: 'Serie · leyenda', source: 'fields', optional: true },
+    { role: 'value', label: 'Columnas · valores', source: 'values' },
+    { role: 'comparison_metric', label: 'Línea · valores', source: 'values' },
   ],
   donut: [
     { role: 'category', label: 'Categoría · anillos', source: 'fields' },
     { role: 'value', label: 'Valores', source: 'values' },
+  ],
+  funnel: [
+    { role: 'category', label: 'Etapas', source: 'fields' },
+    { role: 'value', label: 'Valores', source: 'values' },
+  ],
+  gantt: [
+    { role: 'category', label: 'Filas · tareas', source: 'fields' },
+    { role: 'x_axis', label: 'Inicio · fecha', source: 'fields' },
+    { role: 'value', label: 'Duración · valores', source: 'values' },
+  ],
+  gauge: [
+    { role: 'value', label: 'Valores', source: 'values' },
+    { role: 'target_metric', label: 'Objetivo', source: 'values', optional: true },
+  ],
+  heatmap: [
+    { role: 'row', label: 'Filas', source: 'fields' },
+    { role: 'column', label: 'Columnas', source: 'fields' },
+    { role: 'value', label: 'Valores', source: 'values' },
+  ],
+  histogram: [
+    { role: 'value', label: 'Valores · numérico', source: 'values' },
   ],
   kpi: [{ role: 'value', label: 'Valores', source: 'values' }],
   line: [
     { role: 'category', label: 'Eje X · periodo', source: 'fields' },
     { role: 'value', label: 'Eje Y · valores', source: 'values' },
     { role: 'series', label: 'Serie', source: 'fields', optional: true },
+  ],
+  lollipop: cartesianWells('Eje X · categoría', 'Eje Y · valores'),
+  map: [
+    { role: 'category', label: 'Ubicación', source: 'fields' },
+    { role: 'value', label: 'Tamaño · valores', source: 'values', optional: true },
+  ],
+  packed_bubbles: [
+    { role: 'category', label: 'Detalle · etiquetas', source: 'fields' },
+    { role: 'series', label: 'Color · agrupación', source: 'fields', optional: true },
+    { role: 'value', label: 'Tamaño · valores', source: 'values' },
+  ],
+  percent_stacked_bar: cartesianWells('Eje Y · categoría', 'Eje X · valores'),
+  percent_stacked_column: cartesianWells('Eje X · categoría', 'Eje Y · valores'),
+  matrix: [
+    { role: 'row', label: 'Filas', source: 'fields' },
+    { role: 'column', label: 'Columnas', source: 'fields' },
+    { role: 'value', label: 'Valores', source: 'values' },
+  ],
+  pareto: [
+    { role: 'category', label: 'Eje X · categoría', source: 'fields' },
+    { role: 'value', label: 'Eje Y · valores', source: 'values' },
   ],
   pie: [
     { role: 'category', label: 'Categoría · sectores', source: 'fields' },
@@ -63,9 +125,26 @@ const FIELD_WELLS: Record<string, readonly FieldWell[]> = {
     { role: 'value', label: 'Eje Y · valores', source: 'values' },
     { role: 'category', label: 'Detalle por punto', source: 'fields', optional: true },
   ],
+  ribbon: cartesianWells('Eje X · categoría', 'Eje Y · valores'),
+  slicer: [{ role: 'category', label: 'Campo a filtrar', source: 'fields' }],
+  stacked_area: [
+    { role: 'category', label: 'Eje X · periodo', source: 'fields' },
+    { role: 'value', label: 'Eje Y · valores', source: 'values' },
+    { role: 'series', label: 'Serie', source: 'fields' },
+  ],
+  stacked_bar: cartesianWells('Eje Y · categoría', 'Eje X · valores'),
+  stacked_column: cartesianWells('Eje X · categoría', 'Eje Y · valores'),
   table: [
     { role: 'category', label: 'Filas · categorías', source: 'fields' },
     { role: 'value', label: 'Valores', source: 'values' },
+  ],
+  treemap: [
+    { role: 'category', label: 'Categorías', source: 'fields' },
+    { role: 'value', label: 'Valores', source: 'values' },
+  ],
+  waterfall: [
+    { role: 'category', label: 'Etapas · categoría', source: 'fields' },
+    { role: 'value', label: 'Aportes · valores', source: 'values' },
   ],
 };
 
@@ -73,13 +152,35 @@ const FIELD_WELLS: Record<string, readonly FieldWell[]> = {
 const VISUAL_ICONS: Record<string, React.ReactNode> = {
   area: <><polygon points="2,14 7,6 11,10 15,3 15,14" transform="translate(0 0)" /></>,
   bar: <><rect height="4" width="10" x="3" y="3" /><rect height="4" width="7" x="3" y="9" /><rect height="4" width="12" x="3" y="15" /></>,
+  box_plot: <><line x1="5" x2="5" y1="1" y2="15" /><rect fill="none" height="6" strokeWidth="1.4" width="6" x="2" y="5" /><line x1="11" x2="11" y1="3" y2="13" /><rect fill="none" height="5" strokeWidth="1.4" width="5" x="8.5" y="5" /></>,
+  bullet: <><rect height="3" width="12" x="2" y="7" /><line x1="11" x2="11" y1="4" y2="13" strokeWidth="1.6" /></>,
   card: <rect height="12" rx="1.5" width="12" x="2" y="2" />,
   column: <><rect height="8" width="4" x="2" y="8" /><rect height="12" width="4" x="8" y="4" /><rect height="6" width="4" x="14" y="10" transform="translate(-2 0)" /></>,
+  combo: <><rect height="9" width="4" x="3" y="7" /><rect height="5" width="4" x="10" y="11" /><polyline fill="none" points="2,10 6,5 10,8 15,2" strokeWidth="1.6" /></>,
   donut: <><circle cx="8" cy="8" fill="none" r="6" strokeWidth="4" /></>,
+  funnel: <><polygon points="1,2 15,2 10,7 6,7" /><polygon points="6,9 10,9 9,14 7,14" /></>,
+  gauge: <><path d="M2 12 A6 6 0 0 1 14 12" fill="none" strokeWidth="2" /><line x1="8" x2="11" y1="12" y2="8" strokeWidth="1.6" /></>,
+  heatmap: <><rect height="3.5" width="3.5" x="1.5" y="1.5" /><rect fillOpacity="0.6" height="3.5" width="3.5" x="6" y="1.5" /><rect fillOpacity="0.3" height="3.5" width="3.5" x="10.5" y="1.5" /><rect fillOpacity="0.3" height="3.5" width="3.5" x="1.5" y="6" /><rect fillOpacity="0.6" height="3.5" width="3.5" x="6" y="6" /><rect height="3.5" width="3.5" x="10.5" y="6" /><rect fillOpacity="0.6" height="3.5" width="3.5" x="1.5" y="10.5" /><rect fillOpacity="0.3" height="3.5" width="3.5" x="6" y="10.5" /><rect height="3.5" width="3.5" x="10.5" y="10.5" /></>,
+  histogram: <><rect height="5" width="3" x="1" y="11" /><rect height="8" width="3" x="4.5" y="8" /><rect height="12" width="3" x="8" y="4" /><rect height="9" width="3" x="11.5" y="7" /></>,
   line: <polyline fill="none" points="2,14 7,7 11,10 15,3" strokeWidth="2" transform="translate(0 1)" />,
+  lollipop: <><line x1="5" x2="5" y1="15" y2="6" strokeWidth="1.6" /><circle cx="5" cy="4.5" r="1.8" /><line x1="11" x2="11" y1="15" y2="9" strokeWidth="1.6" /><circle cx="11" cy="7.5" r="1.8" /></>,
+  map: <><path d="M8 1 C5.2 1 3 3.2 3 6 C3 10 8 15 8 15 C8 15 13 10 13 6 C13 3.2 10.8 1 8 1 Z" /><circle cx="8" cy="6" fill="#ffffff" r="2" /></>,
+  matrix: <><rect fill="none" height="13" rx="1" strokeWidth="1.4" width="13" x="1.5" y="1.5" /><line x1="1.5" x2="14.5" y1="5.5" y2="5.5" strokeWidth="1.4" /><line x1="6" x2="6" y1="5.5" y2="14.5" /><line x1="10.5" x2="10.5" y1="5.5" y2="14.5" /></>,
+  pareto: <><rect height="4" width="2.5" x="2" y="11" /><rect height="7" width="2.5" x="5" y="8" /><rect height="10" width="2.5" x="8" y="5" /><rect height="13" width="2.5" x="11" y="2" /><polyline fill="none" points="2,14 6,10 10,6 14,3" strokeWidth="1.3" strokeOpacity="0.55" /></>,
   pie: <path d="M8 8 L8 1 A7 7 0 1 1 1.5 11 Z" transform="translate(0.5 0.5)" />,
   scatter: <><circle cx="4" cy="12" r="1.8" /><circle cx="9" cy="6" r="1.8" /><circle cx="13" cy="10" r="1.8" /></>,
+  slicer: <><rect fill="none" height="9" rx="1.5" strokeWidth="1.4" width="14" x="1" y="3.5" /><path d="M11 7 L13 9.5 L15 7" fill="none" strokeWidth="1.4" transform="translate(-1 0)" /><rect height="1.6" width="8" x="3" y="14" /></>,
+  stacked_bar: <><rect height="3.4" width="12" x="2" y="2.5" /><rect fillOpacity="0.55" height="3.4" width="8" x="2" y="6.4" /><rect height="3.4" width="13" x="2" y="10.3" /></>,
+  stacked_column: <><rect height="6" width="3.6" x="2" y="2.5" /><rect fillOpacity="0.55" height="6" width="3.6" x="2" y="9" /><rect height="4" width="3.6" x="7" y="4.5" /><rect fillOpacity="0.55" height="7" width="3.6" x="7" y="9" /><rect height="8" width="3.6" x="12" y="2.5" /><rect fillOpacity="0.55" height="3" width="3.6" x="12" y="11" /></>,
   table: <><rect fill="none" height="12" rx="1" strokeWidth="1.5" width="12" x="2" y="2" /><line x1="2" x2="14" y1="6" y2="6" /><line x1="8" x2="8" y1="6" y2="14" /></>,
+  treemap: <><rect height="6" width="7" x="1.5" y="1.5" /><rect fillOpacity="0.55" height="6" width="6" x="9" y="1.5" /><rect fillOpacity="0.55" height="6" width="4" x="1.5" y="8.5" /><rect height="6" width="9" x="6.5" y="8.5" /></>,
+  waterfall: <><rect height="3" width="3.2" x="1" y="2" /><rect fillOpacity="0.55" height="3" width="3.2" x="4.8" y="6" /><rect height="3" width="3.2" x="8.6" y="10" /><rect fillOpacity="0.55" height="3" width="3.2" x="12.4" y="5" /></>,
+  percent_stacked_bar: <><rect height="3.4" width="14" x="1" y="2.5" /><rect fillOpacity="0.55" height="3.4" width="14" x="1" y="6.4" /><rect height="3.4" width="14" x="1" y="10.3" /></>,
+  percent_stacked_column: <><rect height="13" width="3.4" x="2" y="1.5" /><rect fillOpacity="0.55" height="13" width="3.4" x="6.5" y="1.5" /><rect height="13" width="3.4" x="11" y="1.5" /></>,
+  stacked_area: <><polygon points="1,14 1,8 6,4 11,7 15,2 15,14" /><polygon fillOpacity="0.5" points="1,14 1,11 6,9 11,10 15,7 15,14" /></>,
+  ribbon: <><polygon points="1,3 5,3 9,5 13,5 13,8 9,8 5,6 1,6" /><polygon fillOpacity="0.5" points="1,7 5,7 9,9 13,9 13,13 9,13 5,11 1,11" /></>,
+  packed_bubbles: <><circle cx="5" cy="6" r="3.6" /><circle cx="12" cy="4.5" r="2.4" /><circle cx="11" cy="10.5" r="2" /><circle cx="5.5" cy="12.5" r="1.5" /></>,
+  gantt: <><rect height="2.6" width="8" x="2" y="3" /><rect fillOpacity="0.6" height="2.6" width="6" x="6" y="7" /><rect height="2.6" width="9" x="4" y="11" /><line x1="2" x2="2" y1="1" y2="15" strokeWidth="1.2" /></>,
 };
 
 const VisualIcon: React.FC<{ kind: string }> = ({ kind }) => (
