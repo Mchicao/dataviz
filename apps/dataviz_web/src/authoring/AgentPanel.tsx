@@ -137,7 +137,6 @@ export const AgentPanel: React.FC<AgentPanelProps> = ({ proposal, response, prev
               <label className="dv-sr-only" htmlFor="agent-prompt">Describe el dashboard</label>
               <textarea
                 id="agent-prompt"
-                aria-describedby="agent-prompt-help"
                 maxLength={2000}
                 disabled={busy}
                 onChange={(event) => setPrompt(event.target.value)}
@@ -151,7 +150,6 @@ export const AgentPanel: React.FC<AgentPanelProps> = ({ proposal, response, prev
                 rows={3}
                 value={prompt}
               />
-              <p className="dv-agent-help" id="agent-prompt-help">Enter para enviar · Shift+Enter para otra línea</p>
               <div className="dv-agent-input-row">
                 <select aria-label="Modelo del agente" className="dv-agent-chip" disabled={busy || Boolean(proposal) || loadingConfig} value={selection.model} onChange={(event) => {
                   const next = parseSelection({ ...selection, model: event.target.value });

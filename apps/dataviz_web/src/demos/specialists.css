@@ -6,10 +6,11 @@ html[data-demo-route='agents'] body { background: #151515; }
 .specialists-app button { cursor: pointer; }
 .specialists-app button:disabled { cursor: default; color: #92928f; }
 .specialists-app svg { width: 20px; height: 20px; display: block; flex-shrink: 0; }
-.specialists-app .demo-nav { height: 44px; flex-shrink: 0; background: #151515; border-color: #353535; }
-.specialists-app .demo-nav a { color: #bdbdb9; }
-.specialists-app .demo-nav a:hover, .specialists-app .demo-nav a[aria-current='page'] { background: #303030; color: #f5f5f2; }
+.specialists-app .demo-nav { height: 44px; flex-shrink: 0; background: #141414; border-bottom: 1px solid #383838; }
 .specialists-app .demo-nav .demo-brand { color: #eeeeeb; font-size: 15px; }
+.specialists-app .demo-nav a:not(.demo-brand) { color: #e4e4e0; background: #232323; border: 1px solid #4a4a4a; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4); padding: 5px 12px; }
+.specialists-app .demo-nav a:not(.demo-brand):hover { background: #323232; border-color: #707070; color: #ffffff; }
+.specialists-app .demo-nav a:not(.demo-brand)[aria-current='page'] { background: #ffffff; border-color: #ffffff; color: #121212 !important; font-weight: 700; box-shadow: 0 2px 8px rgba(255, 255, 255, 0.2); }
 .specialists-workspace { display: grid; grid-template-columns: 264px minmax(0, 1fr) auto; grid-template-rows: minmax(0, 1fr); flex: 1; min-height: 0; }
 .specialists-directory { background: #151515; border-right: 1px solid #353535; padding: 18px 12px 12px; display: flex; flex-direction: column; overflow-y: auto; min-height: 0; }
 #agent-search { width: 100%; min-height: 38px; padding: 8px 12px; border: 1px solid #777; border-radius: 10px; background: #252525; color: #eee; margin-bottom: 12px; }
@@ -17,7 +18,8 @@ html[data-demo-route='agents'] body { background: #151515; }
 .specialists-list { display: grid; gap: 4px; min-width: 0; }
 .specialists-list button { min-width: 0; }
 .specialists-list button { display: flex; align-items: center; gap: 10px; width: 100%; padding: 11px 9px; border: 0; border-radius: 12px; background: transparent; color: #eeeeeb; text-align: left; }
-.specialists-list button:hover, .specialists-list button[aria-pressed='true'] { background: #2c2c2c; }
+.specialists-list button:hover { background: #262626; color: #ffffff; }
+.specialists-list button[aria-pressed='true'] { background: #2e353b; border: 1px solid #4f5b66; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3); }
 .specialists-list button > span:last-child { min-width: 0; }
 .specialists-list strong { display: block; font-size: 14px; font-weight: 550; }
 .specialists-list small { display: block; margin-top: 3px; font-size: 12px; color: #b6b6b3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

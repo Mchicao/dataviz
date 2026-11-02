@@ -334,8 +334,8 @@ summary.dv-sidebar-heading::-webkit-details-marker { display: none; }
 .dv-prompt-row button { align-self: stretch; border: 1px solid #0d5f96; border-radius: 7px; padding: 0 14px; background: #126ca8; color: #fff; cursor: pointer; font-weight: 650; }
 .dv-prompt-row button:disabled { border-color: #bcc8d1; background: #d3dce3; cursor: default; }
 .dv-prompt-suggestions { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 7px; }
-.dv-prompt-suggestions button { min-height: 24px; border: 1px solid #d0dae2; border-radius: 12px; padding: 4px 8px; background: #f8fafb; color: #516779; cursor: pointer; font-size: 9px; }
-.dv-prompt-suggestions button:hover { border-color: #87b6d5; color: #0d5f96; }
+.dv-prompt-suggestions button { min-height: 24px; border: 1px solid #b0c7d8; border-radius: 12px; padding: 4px 8px; background: #ecf3f9; color: #133957; font-weight: 550; cursor: pointer; font-size: 9px; }
+.dv-prompt-suggestions button:hover { background: #d9e8f4; border-color: #6da2c5; color: #07355d; }
 .dv-proposal { animation: dv-rise var(--duration-base) var(--ease-out-smooth); display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; align-items: stretch; }
 @keyframes dv-rise { from { opacity: 0; transform: translateY(4px); } }
 .dv-proposal-summary { display: grid; gap: 3px; }
@@ -463,8 +463,8 @@ summary.dv-sidebar-heading::-webkit-details-marker { display: none; }
 
 /* Selectores compactos del asistente (estilo ZCode) */
 .dv-agent-input-row { align-items: center; display: flex; gap: 4px; }
-.dv-agent-chip { background: transparent; border: 0; color: var(--studio-muted, #5a6b7b); cursor: pointer; font-size: 11px; max-width: 126px; min-width: 0; padding: 4px 2px; }
-.dv-agent-chip:hover:not(:disabled) { color: #0d78bd; }
+.dv-agent-chip { background: #edf3f8; border: 1px solid #b8ccd9; border-radius: 5px; color: #173853; cursor: pointer; font-size: 11px; font-weight: 550; max-width: 126px; min-width: 0; padding: 4px 6px; }
+.dv-agent-chip:hover:not(:disabled) { background: #dfeaf3; border-color: #8bb2cc; color: #09477d; }
 .dv-agent-chip:disabled { opacity: 0.5; cursor: not-allowed; }
 .dv-agent-send { align-self: center; background: #126ca8; border: 0; border-radius: 6px; color: #fff; cursor: pointer; flex: 0 0 auto; font-size: 14px; height: 28px; margin-left: auto; width: 34px; }
 .dv-agent-send:disabled { background: #d3dce3; cursor: default; }
