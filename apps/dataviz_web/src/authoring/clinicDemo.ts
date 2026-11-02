@@ -1,4 +1,5 @@
-import { datasetFingerprint, parseLocalCsv, semanticModelForDataset } from './csv';
+import { datasetFingerprint, semanticModelForDataset } from './csv';
+import { createClinicDataset } from '../demos/clinicData';
 import { createVisual } from './seed';
 import { initDocument } from './versioning';
 
@@ -6,24 +7,7 @@ export const CLINIC_STORAGE_KEY = 'dataviz.clinic-x.v1';
 
 /** Datos inventados desde cero; ninguna fila, identidad o regla procede de un cliente. */
 export function createClinicDemo() {
-  const rows = ['Fecha,Sede,Especialidad,Capacidad,Agendadas,Atendidas,Canceladas,Ingresos'];
-  const specialties = ['Medicina general', 'Cardiología', 'Dermatología', 'Oftalmología'];
-  for (let day = 0; day < 90; day += 1) {
-    const date = new Date(Date.UTC(2026, 0, day + 1)).toISOString().slice(0, 10);
-    for (let branch = 0; branch < 3; branch += 1) {
-      for (let specialty = 0; specialty < specialties.length; specialty += 1) {
-        const capacity = 24;
-        const scheduled = 15 + ((day * 7 + branch * 3 + specialty * 5) % 10);
-        const cancelled = 1 + ((day + branch + specialty) % 4);
-        const attended = scheduled - cancelled - ((day + specialty) % 3);
-        const revenue = attended * (18000 + specialty * 7000);
-        rows.push([date, ['Norte', 'Centro', 'Sur'][branch], specialties[specialty], capacity,
-          scheduled, attended, cancelled, revenue].join(','));
-      }
-    }
-  }
-  const dataset = parseLocalCsv(rows.join('\n'), 'clinica_x.csv');
-  dataset.imported_at = '2026-01-01T00:00:00.000Z';
+  const dataset = createClinicDataset();
   const model = semanticModelForDataset(dataset);
   model.description = 'Clínica X: operaciones ficticias generadas desde cero, sin datos personales ni de clientes.';
   const visuals = [

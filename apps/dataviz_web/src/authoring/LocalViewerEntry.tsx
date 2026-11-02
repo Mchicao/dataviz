@@ -6,6 +6,7 @@ import { AUTHORING_STORAGE_KEY } from './seed';
 import { loadLocalDataset } from './datasetStorage';
 import { loadDraft } from './storage';
 import { CLINIC_STORAGE_KEY, createClinicDemo } from './clinicDemo';
+import { isClinicDemoLocation } from '../demos/routes';
 
 export interface LocalViewerEntryProps {
   localVersion?: string;
@@ -22,7 +23,7 @@ function parseLocalVersion(value?: string): number | undefined {
 export default function LocalViewerEntry({ localVersion }: LocalViewerEntryProps): React.JSX.Element {
   const resolved = React.useMemo(() => {
     try {
-      const clinic = new URLSearchParams(window.location.search).get('demo') === 'clinic-x'
+      const clinic = isClinicDemoLocation(new URL(window.location.href))
         ? createClinicDemo() : null;
       const storageKey = clinic ? CLINIC_STORAGE_KEY : AUTHORING_STORAGE_KEY;
       const document = loadDraft(window.localStorage, storageKey) ?? clinic?.document;

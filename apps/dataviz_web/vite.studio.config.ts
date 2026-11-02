@@ -4,7 +4,7 @@ import { resolve } from 'node:path';
 
 /** Construye el Studio completo sin inflar la librería embebible del viewer. */
 export default defineConfig({
-  base: './',
+  base: '/',
   build: {
     emptyOutDir: true,
     outDir: resolve(import.meta.dirname, 'dist/studio'),

@@ -1423,6 +1423,8 @@ function viewerHref(
   } | null,
 ): string {
   const query = new URLSearchParams(typeof window === 'undefined' ? '' : window.location.search);
+  const fromDemoStudio = typeof window !== 'undefined' && window.location.pathname.replace(/\/$/, '') === '/studio';
+  if (fromDemoStudio && !remote) {query.set('demo', 'clinic-x');}
   query.set('mode', 'viewer');
   if (remote) {
     query.set('project', remote.projectId);
@@ -1444,7 +1446,7 @@ function viewerHref(
   } else {
     query.delete('localVersion');
   }
-  return `?${query.toString()}`;
+  return `${fromDemoStudio ? '/' : ''}?${query.toString()}`;
 }
 
 function agentCommitMessage(prompt: string): string {

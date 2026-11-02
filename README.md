@@ -59,6 +59,30 @@ Open `http://localhost:3000`. Without `ZAI_API_KEY` the assistant falls back to 
 
 ## Clinic X public demo
 
+Three views share the same independently generated Clinic X snapshot:
+
+- [Studio](https://demo.matiaschicao.cl/studio): editable browser-local drafts.
+- [Dashboard](https://demo.matiaschicao.cl/dashboard): the finished read-only
+  snapshot, with branch/month filters; it never loads visitors' Studio drafts.
+- [Agents](https://demo.matiaschicao.cl/agents): Finance, Revenue Cycle, and
+  Emergency Operations conversations with calculated metrics, formulas, source
+  versions, record counts, filters, and explicit access scopes.
+
+The agent profiles are **public permission simulations**, not authentication or
+tenant security. Direction can select all three specialists; Operations cannot
+select Finance. The server validates the selected profile, agent and bounded
+filters before querying its fixed synthetic projection. Anyone may select the
+Direction profile; no confidential sources are connected. No agent executes
+actions. The outpatient generator is shared with the Studio and dashboard;
+billing and emergency extensions are independently fictional, never client-derived.
+
+Without GLM, specialist answers use deterministic server-side calculations.
+After `ZAI_API_KEY` is configured, GLM receives only the selected specialist's
+aggregate evidence for a qualitative explanation. Numeric evidence always comes
+from the calculations; unvalidated model output falls back to the local answer.
+The demo supports these fixed metrics and filters, not arbitrary analytical
+queries, autonomous workflows, or a production knowledge base.
+
 Open the Studio with `?demo=clinic-x` to load an independently generated fictional
 clinic dashboard: 1,080 daily branch/specialty records, seven editable visuals,
 and browser-local draft history. There are no patient identities or client-derived

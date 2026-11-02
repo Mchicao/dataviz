@@ -20,7 +20,7 @@ const routeBudgets = [
     raw: 310 * 1024,
   },
   {
-    chunkPrefixes: ['ViewerEntry-', 'base-'],
+    chunkPrefixes: ['ViewerEntry-', 'app-', 'base-'],
     gzip: 125 * 1024,
     label: 'DataVIZ Studio viewer route',
     raw: 380 * 1024,

@@ -11,6 +11,7 @@ import type { LocalDataset } from './csv';
 import type { RemoteAuthoringConfig } from './VisualAuthoringEditor';
 import './authoring.css';
 import { CLINIC_STORAGE_KEY, createClinicDemo } from './clinicDemo';
+import { isClinicDemoLocation } from '../demos/routes';
 
 export interface AuthoringEntryProps {
   remote?: RemoteAuthoringConfig;
@@ -63,7 +64,7 @@ export default function AuthoringEntry(props: AuthoringEntryProps = {}): React.J
   }, [props.remote, props.projectId, props.endpoint, props.authToken]);
 
   const clinicDemo = React.useMemo(() => typeof window !== 'undefined'
-    && new URLSearchParams(window.location.search).get('demo') === 'clinic-x'
+    && isClinicDemoLocation(new URL(window.location.href))
     && !remoteConfig ? createClinicDemo() : null, [remoteConfig]);
   const effectiveStorageKey = props.storageKey ?? (remoteConfig ? undefined
     : clinicDemo ? CLINIC_STORAGE_KEY : AUTHORING_STORAGE_KEY);
