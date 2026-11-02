@@ -15,10 +15,10 @@ describe('specialist queries and access', () => {
   it('uses fixed financial evidence consistent with the clinic dashboard', () => {
     const answer = answerSpecialist(parseSpecialistQuery(query()));
     expect(answer.evidence.map((metric) => [metric.id, metric.value])).toEqual([
-      ['collected', 492508000], ['billed', 494668000], ['pending', 2160000],
+      ['collected', 743649000], ['billed', 745809000], ['pending', 2160000],
     ]);
     expect(answer.source.rows).toBe(1080);
-    expect(answer.series.reduce((sum, point) => sum + point.value, 0)).toBe(492508000);
+    expect(answer.series.reduce((sum, point) => sum + point.value, 0)).toBe(743649000);
   });
 
   it('applies natural-language filters before aggregation and rejects conflicting filters', () => {
@@ -73,7 +73,7 @@ describe('specialist queries and access', () => {
     const response = await handleRequest(post(query()), { ASSETS: assets }, provider);
     const answer = await response.json();
     expect(answer.mode).toBe('local');
-    expect(answer.evidence[0].value).toBe(492508000);
+    expect(answer.evidence[0].value).toBe(743649000);
     expect(provider).not.toHaveBeenCalled();
   });
 

@@ -1,5 +1,5 @@
-html[data-demo-route] { color-scheme: light; background: #e6ecf1; color: #172536; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
-html[data-demo-route] body { margin: 0; background: #e6ecf1; }
+html[data-demo-route] { color-scheme: light; background: #dce4ec; color: #172536; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
+html[data-demo-route] body { margin: 0; background: #dce4ec; }
 html[data-demo-route] #root { max-width: none; margin: 0; padding: 0; }
 .demo-nav { height: 48px; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 0 24px; background: #ffffff; border-bottom: 1px solid #c8d5e2; box-shadow: 0 1px 3px rgba(15, 35, 55, 0.04); font-size: 13px; }
 .demo-nav a { text-decoration: none; border-radius: 6px; }
@@ -9,7 +9,7 @@ html[data-demo-route] #root { max-width: none; margin: 0; padding: 0; }
 .demo-nav .demo-brand { color: #173d5c; font-weight: 750; font-size: 17px; padding-left: 0; }
 .demo-nav > div { display: flex; gap: 8px; align-items: center; }
 .demo-studio .dv-authoring-shell { height: calc(100dvh - 48px); }
-.demo-dashboard { min-height: 100dvh; background: #e6ecf1; }
+.demo-dashboard { min-height: 100dvh; background: #dce4ec; }
 .demo-dashboard-heading { max-width: 1280px; margin: 0 auto; padding: 32px 28px 12px; display: flex; justify-content: space-between; align-items: center; gap: 20px; }
 .demo-dashboard-heading h1 { margin: 0 0 5px; color: #173d5c; font-size: 25px; letter-spacing: -.025em; }
 .demo-dashboard-heading p, .demo-source-note, .demo-dashboard-footer { font-size: 13px; color: #4d6071; }
@@ -38,3 +38,5 @@ html[data-demo-route] #root { max-width: none; margin: 0; padding: 0; }
   .demo-dashboard .dv-canvas--geometry > article { position: relative !important; inset: auto !important; width: 100% !important; height: 260px !important; }
   .demo-dashboard .dv-canvas--geometry > article.dv-visual--compact { height: 135px !important; }
 }
+
+.demo-dashboard .dv-card { border: none !important; box-shadow: none !important; background: transparent !important; width: 100% !important; height: 100% !important; }
