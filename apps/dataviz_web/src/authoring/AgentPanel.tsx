@@ -15,6 +15,10 @@ interface AgentPanelProps {
   onPlan: (prompt: string, selection?: AgentSelection) => boolean | Promise<boolean>;
   onApply: () => void;
   onReject: () => void;
+  referencedVisual?: { id: string; name: string; title?: string; intent?: string } | null;
+  onClearReferencedVisual?: () => void;
+  prefillPrompt?: string;
+  onClearPrefill?: () => void;
 }
 
 const PROMPTS = [
@@ -27,8 +31,15 @@ const PROMPTS = [
 const PREFERENCE_KEY = 'dataviz.agent.selection.v1';
 const LEVEL_LABELS = { high: 'Alto · equilibrado', low: 'Bajo · más rápido', max: 'Máximo · más pausado' };
 
-export const AgentPanel: React.FC<AgentPanelProps> = ({ proposal, response, previewError, endpoint, busy = false, onCancel, onCollapse, onPlan, onApply, onReject }) => {
+export const AgentPanel: React.FC<AgentPanelProps> = ({ proposal, response, previewError, endpoint, busy = false, onCancel, onCollapse, onPlan, onApply, onReject, referencedVisual, onClearReferencedVisual, prefillPrompt, onClearPrefill }) => {
   const [prompt, setPrompt] = useState('');
+  useEffect(() => {
+    if (prefillPrompt) {
+      setPrompt(prefillPrompt);
+      onClearPrefill?.();
+    }
+  }, [prefillPrompt, onClearPrefill]);
+
   const [selection, setSelection] = useState<AgentSelection>({ model: 'local', thinking: 'high' });
   const [configured, setConfigured] = useState(false);
   const [configError, setConfigError] = useState('');
@@ -134,6 +145,25 @@ export const AgentPanel: React.FC<AgentPanelProps> = ({ proposal, response, prev
             {configError && <p className="dv-agent-help">{configError}</p>}
             {response && <p className="dv-agent-response" role="status">{response}</p>}
             <div className="dv-prompt-row">
+              {referencedVisual && (
+                <div className="dv-agent-reference-chip">
+                  <span className="dv-agent-reference-label">
+                    🎯 <strong>Visual referenciada:</strong> {referencedVisual.title || referencedVisual.name}
+                    {referencedVisual.intent ? ` (${referencedVisual.intent})` : ''}
+                  </span>
+                  {onClearReferencedVisual && (
+                    <button
+                      aria-label="Quitar referencia de visual"
+                      className="dv-agent-reference-clear"
+                      onClick={onClearReferencedVisual}
+                      title="Quitar referencia"
+                      type="button"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+              )}
               <label className="dv-sr-only" htmlFor="agent-prompt">Describe el dashboard</label>
               <textarea
                 id="agent-prompt"

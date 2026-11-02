@@ -1,34 +1,48 @@
 import { parseLocalCsv } from "../authoring/csv";
 
 export const DEMO_PERIOD = "2026-01-01 / 2026-03-31";
-export const DEMO_VERSION = "clinic-x-2026-q1-v1";
+export const DEMO_VERSION = "clinic-x-2026-q1-v2";
 export const BRANCHES = ["Norte", "Centro", "Sur"] as const;
 export const MONTHS = ["2026-01", "2026-02", "2026-03"] as const;
 
-/** Generación independiente y reproducible; no utiliza entradas ni identidades de clientes. */
+/** Generador pseudo-aleatorio determinista y reproducible con semilla fija. */
+function createSeededRandom(seed: number) {
+  let s = seed;
+  return () => {
+    s += 0x6D2B79F5;
+    let t = Math.imul(s ^ (s >>> 15), s | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/** Generación independiente y reproducible; refleja la variabilidad orgánica real de una red clínica. */
 export function createClinicDataset() {
+  const rng = createSeededRandom(20260101);
   const rows = ["Fecha,Sede,Especialidad,Capacidad,Agendadas,Atendidas,Canceladas,Ingresos"];
   const specialties = ["Medicina general", "Cardiología", "Dermatología", "Oftalmología"];
-  const branchWeights = [0.92, 1.55, 0.53];
+  const branchWeights = [0.95, 1.60, 0.55];
   const specialtyWeights = [1.60, 1.05, 0.75, 0.60];
   const tariffs = [22000, 48000, 38000, 35000];
-  const dayOfWeekMultipliers = [0.04, 1.32, 1.20, 1.05, 0.98, 0.82, 0.28];
+  const dowBase = [0.05, 1.25, 1.18, 1.08, 1.02, 0.88, 0.30];
 
   for (let day = 0; day < 90; day += 1) {
     const date = new Date(Date.UTC(2026, 0, day + 1)).toISOString().slice(0, 10);
-    const dayOfWeek = (day + 4) % 7;
+    const dow = (day + 4) % 7;
     const isJan1 = (day === 0);
-    const seasonalMultiplier = day < 31 ? (isJan1 ? 0.05 : 0.96) : (day < 59 ? 0.78 : 1.22);
-    const dayMultiplier = isJan1 ? 0.05 : dayOfWeekMultipliers[dayOfWeek];
+    const isJan2 = (day === 1);
+    const seasonal = day < 31 ? (isJan1 ? 0.04 : (isJan2 ? 0.60 : 0.95)) : (day < 59 ? 0.82 : 1.18);
+    const dayJitter = 0.91 + rng() * 0.18;
+    const dayDow = isJan1 ? 0.04 : (isJan2 ? 0.55 : dowBase[dow]);
 
     for (let branch = 0; branch < 3; branch += 1) {
       for (let specialty = 0; specialty < specialties.length; specialty += 1) {
-        const baseSlots = 32;
-        const capacity = Math.max(8, Math.round(baseSlots * branchWeights[branch] * specialtyWeights[specialty]));
-        const variation = 0.94 + (((day * 13 + branch * 7 + specialty * 11) % 15) / 100);
-        const demand = capacity * dayMultiplier * seasonalMultiplier * variation;
+        const baseSlots = 48;
+        const capacity = Math.max(12, Math.round(baseSlots * branchWeights[branch] * specialtyWeights[specialty]));
+        const slotNoise = 0.93 + rng() * 0.14;
+        const demand = capacity * 0.72 * dayDow * seasonal * dayJitter * slotNoise;
         const scheduled = Math.min(capacity, Math.max(0, Math.round(demand)));
-        const cancelRate = 0.06 + (((day + branch + specialty) % 5) * 0.012);
+        const cancelRate = 0.06 + rng() * 0.05;
         const cancelled = Math.min(scheduled, Math.round(scheduled * cancelRate));
         const attended = scheduled - cancelled;
         const income = attended * tariffs[specialty];

@@ -124,6 +124,8 @@ export const VisualAuthoringEditor: React.FC<VisualAuthoringEditorProps> = ({
   const pageMenuRef = useRef<HTMLDivElement | null>(null);
   const visualMenuRef = useRef<HTMLDivElement | null>(null);
   const [visualMenu, setVisualMenu] = useState<{ visualId: string; x: number; y: number } | null>(null);
+  const [referencedVisualId, setReferencedVisualId] = useState<string | null>(null);
+  const [agentPrefill, setAgentPrefill] = useState<string>('');
   const [zoom, setZoom] = useState(80);
   const [paneWidths, setPaneWidths] = useState({ agent: 240, data: 240, filters: 240, visual: 280 });
   const canvasViewportRef = useRef<HTMLDivElement | null>(null);
@@ -1175,6 +1177,10 @@ export const VisualAuthoringEditor: React.FC<VisualAuthoringEditorProps> = ({
             <AgentPanel
               busy={agentBusy}
               endpoint={agentEndpoint}
+              referencedVisual={activePresentation.visuals.find((item) => item.id === referencedVisualId) ?? null}
+              onClearReferencedVisual={() => setReferencedVisualId(null)}
+              prefillPrompt={agentPrefill}
+              onClearPrefill={() => setAgentPrefill('')}
               onApply={handleApplyProposal}
               onCancel={() => {
                 agentRequest.current?.abort();
@@ -1258,6 +1264,22 @@ export const VisualAuthoringEditor: React.FC<VisualAuthoringEditorProps> = ({
 
         {visualMenu && (
           <div className="dv-context-menu" role="menu" ref={visualMenuRef} style={{ left: visualMenu.x, top: visualMenu.y }}>
+            <button
+              role="menuitem"
+              onClick={() => {
+                const targetVisual = activePresentation.visuals.find((item) => item.id === visualMenu.visualId);
+                setSelectedId(visualMenu.visualId);
+                setReferencedVisualId(visualMenu.visualId);
+                setAgentCollapsed(false);
+                setVisualMenu(null);
+                if (targetVisual) {
+                  setAgentPrefill(`Ayúdame a modificar el gráfico "${targetVisual.title || targetVisual.name}"`);
+                }
+              }}
+              type="button"
+            >
+              💬 Referenciar al chatbot
+            </button>
             <button role="menuitem" disabled={!canAuthor || Boolean(proposal)} onClick={() => { const visual = activePresentation.visuals.find((item) => item.id === visualMenu.visualId); if (visual) {handleDuplicateVisual(visual);} setVisualMenu(null); }} type="button">Duplicar visual</button>
             <button role="menuitem" disabled={!canAuthor || Boolean(proposal)} onClick={() => { const visual = activePresentation.visuals.find((item) => item.id === visualMenu.visualId); if (visual) {handleRemoveForId(visual.id);} setVisualMenu(null); }} type="button">Eliminar visual</button>
           </div>

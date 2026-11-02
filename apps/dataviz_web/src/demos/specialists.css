@@ -111,3 +111,180 @@ dialog.specialist-evidence::backdrop { background: #0009; }
   .specialist-composer { margin: 0 12px 12px; width: calc(100% - 24px); }
 }
 @media (prefers-reduced-motion: reduce) { .specialist-messages { scroll-behavior: auto; } }
+
+/* Embedded chat visualizer (T3 Code style) */
+.specialist-chat-visualizer {
+  margin: 12px 0 6px;
+  background: #242424;
+  border: 1px solid #3c3c3c;
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: grid;
+  gap: 12px;
+}
+.specialist-kpi-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.specialist-kpi-chip {
+  flex: 1 1 120px;
+  background: #1a1a1a;
+  border: 1px solid #363636;
+  border-radius: 8px;
+  padding: 8px 10px;
+  display: grid;
+  gap: 3px;
+}
+.specialist-kpi-label {
+  font-size: 11px;
+  color: #9e9e9a;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.specialist-kpi-value {
+  font-size: 14px;
+  color: #fff;
+  font-weight: 700;
+}
+.specialist-chat-chart {
+  background: #1c1c1c;
+  border: 1px solid #333333;
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: grid;
+  gap: 8px;
+}
+.specialist-chat-chart-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: #d8d8d4;
+}
+.specialist-chat-chart-title small {
+  font-size: 10px;
+  color: #888;
+  font-weight: 400;
+}
+.specialist-chat-bars {
+  display: grid;
+  gap: 6px;
+}
+.specialist-chat-bar-item {
+  display: grid;
+  grid-template-columns: 80px 1fr auto;
+  align-items: center;
+  gap: 8px;
+  font-size: 11.5px;
+}
+.specialist-chat-bar-name {
+  color: #b5b5b0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.specialist-chat-bar-track {
+  height: 8px;
+  background: #2c2c2c;
+  border-radius: 4px;
+  overflow: hidden;
+}
+.specialist-chat-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.4s ease-out;
+}
+.specialist-chat-bar-amount {
+  color: #eee;
+  font-weight: 600;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+/* Fuentes agrupadas por Redshift / PSQL */
+.specialist-dashboard-source {
+  margin-bottom: 16px;
+  padding: 8px 12px;
+  background: #252525;
+  border-radius: 8px;
+  border: 1px solid #3a3a3a;
+  display: grid;
+  gap: 4px;
+}
+.specialist-source-label {
+  font-size: 11px;
+  color: #9e9e9a;
+}
+.specialist-dashboard-link {
+  color: #4da3ff;
+  text-decoration: none;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.specialist-dashboard-link:hover {
+  text-decoration: underline;
+}
+.specialist-source-groups {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.specialist-source-groups h3, .specialist-evidence-metrics-box h3 {
+  font-size: 12.5px;
+  margin: 0 0 6px;
+  color: #d0d0cc;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.specialist-source-card {
+  background: #242424;
+  border: 1px solid #383838;
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: grid;
+  gap: 6px;
+}
+.specialist-source-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.specialist-source-card-icon {
+  font-size: 16px;
+}
+.specialist-source-card-header strong {
+  display: block;
+  font-size: 12px;
+  color: #fff;
+}
+.specialist-source-card-header small {
+  display: block;
+  font-size: 10.5px;
+  color: #8c8c88;
+}
+.specialist-source-card-header code {
+  color: #ff9800;
+}
+.specialist-card-sublabel {
+  font-size: 11px;
+  color: #a8a8a4;
+  font-weight: 600;
+  display: block;
+}
+.specialist-source-card-tables ul {
+  margin: 4px 0 0;
+  padding-left: 18px;
+  font-size: 11px;
+}
+.specialist-source-card-tables code {
+  color: #79c0ff;
+}
+.specialist-source-card-metrics {
+  font-size: 11px;
+  color: #b0b0ac;
+  border-top: 1px solid #333;
+  padding-top: 6px;
+  margin-top: 2px;
+}

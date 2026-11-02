@@ -125,8 +125,20 @@ Si la pregunta no se resuelve con la evidencia, explica la limitación. Cita al 
             }, providerFetch);
           }
           if (!record(reply) || typeof reply.message !== 'string' || !reply.message.trim() || reply.message.length > 2000
-            || /\d/.test(reply.message) || !Array.isArray(reply.evidence_ids) || !reply.evidence_ids.length
+            || !Array.isArray(reply.evidence_ids) || !reply.evidence_ids.length
             || !reply.evidence_ids.every((id) => answer.evidence.some((metric) => metric.id === id))) {
+            throw new Error('Unverifiable explanation');
+          }
+          // Permite cifras verificadas presentes en la evidencia; rechaza cifras inventadas no provistas.
+          const numbersInText = (reply.message.match(/\b\d+(?:[.,]\d+)*\b/g) ?? [])
+            .map((s) => Number(s.replace(/\./g, '').replace(',', '.')))
+            .filter((n) => Number.isFinite(n) && n > 0);
+          const evidenceNumbers = new Set(answer.evidence.flatMap((m) => [
+            Math.round(m.value),
+            Math.floor(m.value),
+            Number(m.value.toFixed(1)),
+          ]));
+          if (numbersInText.some((n) => !evidenceNumbers.has(n) && !evidenceNumbers.has(Math.round(n)))) {
             throw new Error('Unverifiable explanation');
           }
           answer.message = reply.message;

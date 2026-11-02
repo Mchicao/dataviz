@@ -3,7 +3,7 @@ import { createClinicDataset } from '../demos/clinicData';
 import { createVisual } from './seed';
 import { initDocument } from './versioning';
 
-export const CLINIC_STORAGE_KEY = 'dataviz.clinic-x.v1';
+export const CLINIC_STORAGE_KEY = 'dataviz.clinic-x.v3';
 
 /** Datos inventados desde cero; ninguna fila, identidad o regla procede de un cliente. */
 export function createClinicDemo() {

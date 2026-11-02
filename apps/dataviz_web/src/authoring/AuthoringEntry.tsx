@@ -11,6 +11,7 @@ import type { LocalDataset } from './csv';
 import type { RemoteAuthoringConfig } from './VisualAuthoringEditor';
 import './authoring.css';
 import { CLINIC_STORAGE_KEY, createClinicDemo } from './clinicDemo';
+import { datasetFingerprint } from './csv';
 import { isClinicDemoLocation } from '../demos/routes';
 
 export interface AuthoringEntryProps {
@@ -74,8 +75,11 @@ export default function AuthoringEntry(props: AuthoringEntryProps = {}): React.J
       return createAuthoringDocument();
     }
     try {
-      return (effectiveStorageKey ? loadDraft(window.localStorage, effectiveStorageKey) : null)
-        ?? clinicDemo?.document ?? createAuthoringDocument();
+      const draft = effectiveStorageKey ? loadDraft(window.localStorage, effectiveStorageKey) : null;
+      if (draft && clinicDemo && draft.versions[0]?.dataset_fingerprint === clinicDemo.document.versions[0]?.dataset_fingerprint) {
+        return draft;
+      }
+      return clinicDemo?.document ?? (effectiveStorageKey ? loadDraft(window.localStorage, effectiveStorageKey) : null) ?? createAuthoringDocument();
     } catch {
       return clinicDemo?.document ?? createAuthoringDocument();
     }
@@ -87,9 +91,11 @@ export default function AuthoringEntry(props: AuthoringEntryProps = {}): React.J
       return null;
     }
     try {
-      return effectiveStorageKey
-        ? loadLocalDataset(window.localStorage, `${effectiveStorageKey}.dataset`) ?? clinicDemo?.dataset ?? null
-        : clinicDemo?.dataset ?? null;
+      const stored = effectiveStorageKey ? loadLocalDataset(window.localStorage, `${effectiveStorageKey}.dataset`) : null;
+      if (stored && clinicDemo && datasetFingerprint(stored) === datasetFingerprint(clinicDemo.dataset)) {
+        return stored;
+      }
+      return clinicDemo?.dataset ?? stored ?? null;
     } catch {
       return clinicDemo?.dataset ?? null;
     }
