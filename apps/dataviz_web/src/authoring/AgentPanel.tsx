@@ -84,12 +84,24 @@ export const AgentPanel: React.FC<AgentPanelProps> = ({ proposal, response, prev
 
   return (
     <section aria-label="Asistente de diseño" className="dv-right-pane dv-agent-pane">
-      <div className="dv-pane-header">
+      <div
+        className="dv-pane-header dv-clickable-pane-header"
+        onClick={onCollapse}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            onCollapse?.();
+          }
+        }}
+        role="button"
+        tabIndex={0}
+        title="Minimizar panel de asistente"
+      >
         <span className="dv-pane-title"><span aria-hidden="true" className="dv-pane-icon">✦</span><strong>Asistente</strong></span>
         <span className="dv-agent-status">{busy
           ? <>Consultando<span aria-hidden="true" className="dv-agent-dots"><i /><i /><i /></span></>
           : loadingConfig ? 'Conectando…' : 'Listo'}</span>
-        <button aria-label="Minimizar asistente" className="dv-pane-collapse" onClick={onCollapse} title="Minimizar panel" type="button">»</button>
+        <span aria-hidden="true" className="dv-pane-collapse">»</span>
       </div>
       <div aria-live="polite" className="dv-sr-only">
         {proposal ? `Propuesta lista. ${proposal.summary}` : ''}

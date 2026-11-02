@@ -8,7 +8,7 @@ html[data-demo-route] #root { max-width: none; margin: 0; padding: 0; }
 .demo-nav a:not(.demo-brand)[aria-current='page'] { color: #ffffff !important; background: #0d62a4; border-color: #08497d; font-weight: 700; box-shadow: 0 2px 5px rgba(13, 98, 164, 0.28); }
 .demo-nav .demo-brand { color: #173d5c; font-weight: 750; font-size: 17px; padding-left: 0; }
 .demo-nav > div { display: flex; gap: 8px; align-items: center; }
-.demo-studio .dv-authoring-shell { height: calc(100dvh - 48px); }
+.demo-studio .dv-authoring-shell { height: 100dvh; }
 .demo-dashboard { min-height: 100dvh; background: #dce4ec; }
 .demo-dashboard-heading { max-width: 1280px; margin: 0 auto; padding: 32px 28px 12px; display: flex; justify-content: space-between; align-items: center; gap: 20px; }
 .demo-dashboard-heading h1 { margin: 0 0 5px; color: #173d5c; font-size: 25px; letter-spacing: -.025em; }

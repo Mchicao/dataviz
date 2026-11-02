@@ -1022,7 +1022,9 @@ export const VisualAuthoringEditor: React.FC<VisualAuthoringEditorProps> = ({
     <main className="dv-authoring-shell" data-testid="authoring-editor-root" id="authoring-editor-root" onKeyDown={handleKeyDown}>
       <h1 className="dv-sr-only">{head.model.name} · DataVIZ Studio</h1>
       <header className="dv-studio-header">
-        <div className="dv-studio-brand"><span aria-hidden="true">DV</span></div>
+        <div className="dv-studio-brand">
+          <a className="dv-brand-title" href="https://dataviz.matiaschicao.cl/">DataVIZ</a>
+        </div>
         <nav className="dv-header-nav" aria-label="Vistas del proyecto">
           <button aria-current={view === 'canvas' ? 'page' : undefined} onClick={() => setView('canvas')} type="button">
             <svg aria-hidden="true" className="dv-rail-glyph" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.7} viewBox="0 0 24 24">
@@ -1081,6 +1083,11 @@ export const VisualAuthoringEditor: React.FC<VisualAuthoringEditorProps> = ({
           <span className="dv-save-state" data-testid={remoteMode ? 'remote-save-state' : undefined}><i /> {remoteMode ? remoteSaveLabel[remoteState] : 'Guardado local'}</span>
         </div>
         <div className="dv-header-actions">
+          <nav className="dv-nav-links" aria-label="Navegación general">
+            <a href="/studio" aria-current="page">Crear dashboards</a>
+            <a href="/dashboard">Ver dashboard</a>
+            <a href="/agents">Agentes</a>
+          </nav>
           {(onRequestPublication || remoteMode) && (
             <button className="dv-button-primary" disabled={!canRequestPublish || Boolean(proposal) || datasetMissing || (remoteMode && (remoteState !== 'ready' || requestingPublication))} onClick={handleRequestPublication} type="button">Solicitar publicación v{head.number}</button>
           )}
@@ -1286,7 +1293,7 @@ export const VisualAuthoringEditor: React.FC<VisualAuthoringEditorProps> = ({
           )}
 
           {!agentCollapsed && <div aria-hidden="true" className="dv-pane-resizer" onPointerDown={(event) => beginPaneResize(event, 'agent')} title="Arrastra para ajustar el ancho" />}
-          {agentCollapsed && (
+          {agentCollapsed ? (
             <div
               aria-label="Expandir asistente"
               className="dv-side-strip"
@@ -1297,8 +1304,7 @@ export const VisualAuthoringEditor: React.FC<VisualAuthoringEditorProps> = ({
             >
               <span aria-hidden="true" className="dv-side-strip-label">Asistente</span>
             </div>
-          )}
-          <div className={agentCollapsed ? 'dv-hidden-pane' : 'dv-agent-wrap'}>
+          ) : (
             <AgentPanel
               busy={agentBusy}
               endpoint={agentEndpoint}
@@ -1320,7 +1326,7 @@ export const VisualAuthoringEditor: React.FC<VisualAuthoringEditorProps> = ({
               proposal={proposal}
               response={agentResponse}
             />
-          </div>
+          )}
         </div>
       </div>
 

@@ -3,7 +3,6 @@ import ReactDOM from 'react-dom/client';
 import { optionalQueryValue, resolveEntryMode } from './entryMode';
 import { RouteErrorBoundary } from './RouteErrorBoundary';
 import { demoRoute } from './demos/routes';
-import { DemoNav } from './demos/DemoNav';
 import './demos/demos.css';
 
 const AuthoringEntry = React.lazy(() => import('./authoring/AuthoringEntry'));
@@ -48,7 +47,7 @@ if (!rootElement) {throw new Error('DataVIZ Studio requires a #root element');}
       <RouteErrorBoundary>
         <React.Suspense fallback={<p className="dv-runtime-loading">Cargando DataVIZ…</p>}>
           {route === 'dashboard' ? <ClinicDashboard /> : route === 'agents' ? <Specialists />
-            : route === 'studio' ? <div className="demo-studio"><DemoNav current="studio" /><AuthoringEntry /></div>
+            : route === 'studio' ? <div className="demo-studio"><AuthoringEntry /></div>
             : landing === undefined
             ? authoring
               ? <AuthoringEntry authToken={authToken} endpoint={endpoint} projectId={projectId} />
