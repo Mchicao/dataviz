@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import type { AgentProposal } from './types';
-import { AGENT_MODELS, loadAgentConfig, parseSelection, THINKING_LEVELS } from './agentSettings';
+import { CHATBOT_MODELS, CHATBOT_THINKING, loadAgentConfig, parseSelection } from './agentSettings';
 import type { AgentSelection } from './agentSettings';
 import { customVisualOpsRequireConfirmation } from '../visuals/custom/spec';
 
@@ -156,13 +156,13 @@ export const AgentPanel: React.FC<AgentPanelProps> = ({ proposal, response, prev
                   if (next) {choose(next);}
                 }}>
                   <option value="local">Reglas locales</option>
-                  {AGENT_MODELS.map((model) => <option key={model} value={model} disabled={!configured}>{model}</option>)}
+                  {CHATBOT_MODELS.map((model) => <option key={model} value={model} disabled={!configured}>{model}</option>)}
                 </select>
                 <select aria-label="Nivel de razonamiento" className="dv-agent-chip" disabled={busy || Boolean(proposal) || selection.model === 'local'} value={selection.thinking} onChange={(event) => {
                   const next = parseSelection({ ...selection, thinking: event.target.value });
                   if (next) {choose(next);}
                 }}>
-                  {THINKING_LEVELS.map((level) => <option key={level} value={level}>{LEVEL_LABELS[level].split(' ')[0]}</option>)}
+                  {CHATBOT_THINKING.map((level) => <option key={level} value={level}>{LEVEL_LABELS[level].split(' ')[0]}</option>)}
                 </select>
                 {busy ? <button aria-label="Cancelar" className="dv-agent-send" onClick={onCancel} title="Cancelar solicitud" type="button">×</button>
                   : <button aria-label="Enviar" className="dv-agent-send" disabled={!prompt.trim() || loadingConfig || (selection.model !== 'local' && !configured)} onClick={submit} type="button">↑</button>}

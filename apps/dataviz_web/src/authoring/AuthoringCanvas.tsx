@@ -22,6 +22,98 @@ interface AuthoringCanvasProps {
   model: SemanticModel;
 }
 
+export interface SnapResult {
+  x: number;
+  y: number;
+  guidesX: number[];
+  guidesY: number[];
+}
+
+export function computeSnap(
+  target: { x: number; y: number; width: number; height: number },
+  others: Array<{ geometry: { x: number; y: number; width: number; height: number } }>,
+  canvas: { width: number; height: number },
+  options: { disabled?: boolean; threshold?: number; gridSize?: number } = {},
+): SnapResult {
+  const { disabled = false, threshold = 6, gridSize = 10 } = options;
+  if (disabled) {
+    return { x: target.x, y: target.y, guidesX: [], guidesY: [] };
+  }
+
+  let snappedX = target.x;
+  let snappedY = target.y;
+  let minDiffX = threshold + 1;
+  let minDiffY = threshold + 1;
+  let guideX: number | null = null;
+  let guideY: number | null = null;
+
+  const xTargets: number[] = [0, Math.round(canvas.width / 2), canvas.width];
+  const yTargets: number[] = [0, Math.round(canvas.height / 2), canvas.height];
+
+  for (const other of others) {
+    const og = other.geometry;
+    xTargets.push(og.x, Math.round(og.x + og.width / 2), og.x + og.width);
+    yTargets.push(og.y, Math.round(og.y + og.height / 2), og.y + og.height);
+  }
+
+  const testPointsX = [
+    { offset: 0 },
+    { offset: Math.round(target.width / 2) },
+    { offset: target.width },
+  ];
+
+  for (const t of xTargets) {
+    for (const p of testPointsX) {
+      const cur = target.x + p.offset;
+      const diff = Math.abs(cur - t);
+      if (diff <= threshold && diff < minDiffX) {
+        minDiffX = diff;
+        snappedX = t - p.offset;
+        guideX = t;
+      }
+    }
+  }
+
+  if (guideX === null && gridSize > 0) {
+    const gridX = Math.round(target.x / gridSize) * gridSize;
+    if (Math.abs(gridX - target.x) <= threshold) {
+      snappedX = gridX;
+    }
+  }
+
+  const testPointsY = [
+    { offset: 0 },
+    { offset: Math.round(target.height / 2) },
+    { offset: target.height },
+  ];
+
+  for (const t of yTargets) {
+    for (const p of testPointsY) {
+      const cur = target.y + p.offset;
+      const diff = Math.abs(cur - t);
+      if (diff <= threshold && diff < minDiffY) {
+        minDiffY = diff;
+        snappedY = t - p.offset;
+        guideY = t;
+      }
+    }
+  }
+
+  if (guideY === null && gridSize > 0) {
+    const gridY = Math.round(target.y / gridSize) * gridSize;
+    if (Math.abs(gridY - target.y) <= threshold) {
+      snappedY = gridY;
+    }
+  }
+
+  return {
+    x: Math.round(snappedX),
+    y: Math.round(snappedY),
+    guidesX: guideX !== null ? [guideX] : [],
+    guidesY: guideY !== null ? [guideY] : [],
+  };
+}
+
 export const AuthoringCanvas: React.FC<AuthoringCanvasProps> = ({
   presentation,
   selectedId,
@@ -40,6 +132,7 @@ export const AuthoringCanvas: React.FC<AuthoringCanvasProps> = ({
   model,
 }) => {
   const canvasRef = useRef<HTMLDivElement | null>(null);
+  const [guides, setGuides] = useState<{ x?: number[]; y?: number[] }>({});
   const rendered = useMemo(() => renderPlan(
     renderPlanForPresentation(presentation),
     previewResultsFor(presentation.visuals, dataset, model),
@@ -97,6 +190,12 @@ export const AuthoringCanvas: React.FC<AuthoringCanvasProps> = ({
                 <div><button onClick={() => onAdd('card')} type="button">Agregar un KPI</button><button onClick={() => onAdd('bar')} type="button">Agregar barras</button></div>
               </div>
             )}
+            {guides.x?.map((gx) => (
+              <div aria-hidden="true" className="dv-canvas-guide dv-canvas-guide--x" key={`guide-x-${gx}`} style={{ left: `${gx}px` }} />
+            ))}
+            {guides.y?.map((gy) => (
+              <div aria-hidden="true" className="dv-canvas-guide dv-canvas-guide--y" key={`guide-y-${gy}`} style={{ top: `${gy}px` }} />
+            ))}
             {presentation.visuals.map((visual, index) => (
               <VisualFrame
                 canEdit={canEdit}
@@ -106,6 +205,7 @@ export const AuthoringCanvas: React.FC<AuthoringCanvasProps> = ({
                 onMove={onMove}
                 onResize={onResize}
                 onVisualContextMenu={onVisualContextMenu}
+                onGuidesChange={setGuides}
                 onSelect={() => onSelect(visual.id)}
                 presentation={presentation}
                 selected={visual.id === selectedId}
@@ -142,11 +242,12 @@ const VisualFrame: React.FC<{
   onMove: (visual: VisualLayoutSpec, message: string) => void;
   onResize: (visual: VisualLayoutSpec, message: string) => void;
   onVisualContextMenu: (x: number, y: number, visualId: string) => void;
+  onGuidesChange: (guides: { x?: number[]; y?: number[] }) => void;
   onSelect: () => void;
   presentation: PresentationSnapshot;
   selected: boolean;
   visual: VisualLayoutSpec;
-}> = ({ canEdit, canvasRef, element, onMove, onResize, onVisualContextMenu, onSelect, presentation, selected, visual }) => {
+}> = ({ canEdit, canvasRef, element, onMove, onResize, onVisualContextMenu, onGuidesChange, onSelect, presentation, selected, visual }) => {
   const { width: canvasWidth, height: canvasHeight } = presentation.canvas;
   const [draftGeometry, setDraftGeometry] = useState<VisualLayoutSpec['geometry'] | null>(null);
   const movedRecently = useRef(false);
@@ -203,7 +304,7 @@ const VisualFrame: React.FC<{
     const north = handle.includes('n');
     const south = handle.includes('s');
     let latest: VisualLayoutSpec['geometry'] | null = null;
-    const apply = (clientX: number, clientY: number) => {
+    const apply = (clientX: number, clientY: number, altKey = false) => {
       const dx = (clientX - start.x) * scaleX;
       const dy = (clientY - start.y) * scaleY;
       const right = start.geometry.x + start.geometry.width;
@@ -213,6 +314,107 @@ const VisualFrame: React.FC<{
       if (south) {height = Math.min(Math.max(height + dy, MIN_VISUAL_HEIGHT), canvasHeight - y);}
       if (west) { x = Math.min(Math.max(start.geometry.x + dx, 0), right - MIN_VISUAL_WIDTH); width = right - x; }
       if (north) { y = Math.min(Math.max(start.geometry.y + dy, 0), bottom - MIN_VISUAL_HEIGHT); height = bottom - y; }
+
+      const guidesX: number[] = [];
+      const guidesY: number[] = [];
+
+      if (!altKey) {
+        const threshold = 6;
+        const gridSize = 10;
+        const others = presentation.visuals.filter((v) => v.id !== visual.id);
+        const xTargets = [0, Math.round(canvasWidth / 2), canvasWidth, ...others.flatMap((o) => [o.geometry.x, Math.round(o.geometry.x + o.geometry.width / 2), o.geometry.x + o.geometry.width])];
+        const yTargets = [0, Math.round(canvasHeight / 2), canvasHeight, ...others.flatMap((o) => [o.geometry.y, Math.round(o.geometry.y + o.geometry.height / 2), o.geometry.y + o.geometry.height])];
+
+        if (east) {
+          const curR = x + width;
+          let bestDiff = threshold + 1;
+          let bestT: number | null = null;
+          for (const t of xTargets) {
+            const diff = Math.abs(curR - t);
+            if (diff <= threshold && diff < bestDiff && t - x >= MIN_VISUAL_WIDTH && t <= canvasWidth) {
+              bestDiff = diff;
+              bestT = t;
+            }
+          }
+          if (bestT !== null) {
+            width = bestT - x;
+            guidesX.push(bestT);
+          } else if (gridSize > 0) {
+            const gridR = Math.round(curR / gridSize) * gridSize;
+            if (Math.abs(gridR - curR) <= threshold && gridR - x >= MIN_VISUAL_WIDTH && gridR <= canvasWidth) {
+              width = gridR - x;
+            }
+          }
+        } else if (west) {
+          let bestDiff = threshold + 1;
+          let bestT: number | null = null;
+          for (const t of xTargets) {
+            const diff = Math.abs(x - t);
+            if (diff <= threshold && diff < bestDiff && right - t >= MIN_VISUAL_WIDTH && t >= 0) {
+              bestDiff = diff;
+              bestT = t;
+            }
+          }
+          if (bestT !== null) {
+            x = bestT;
+            width = right - x;
+            guidesX.push(bestT);
+          } else if (gridSize > 0) {
+            const gridX = Math.round(x / gridSize) * gridSize;
+            if (Math.abs(gridX - x) <= threshold && right - gridX >= MIN_VISUAL_WIDTH && gridX >= 0) {
+              x = gridX;
+              width = right - x;
+            }
+          }
+        }
+
+        if (south) {
+          const curB = y + height;
+          let bestDiff = threshold + 1;
+          let bestT: number | null = null;
+          for (const t of yTargets) {
+            const diff = Math.abs(curB - t);
+            if (diff <= threshold && diff < bestDiff && t - y >= MIN_VISUAL_HEIGHT && t <= canvasHeight) {
+              bestDiff = diff;
+              bestT = t;
+            }
+          }
+          if (bestT !== null) {
+            height = bestT - y;
+            guidesY.push(bestT);
+          } else if (gridSize > 0) {
+            const gridB = Math.round(curB / gridSize) * gridSize;
+            if (Math.abs(gridB - curB) <= threshold && gridB - y >= MIN_VISUAL_HEIGHT && gridB <= canvasHeight) {
+              height = gridB - y;
+            }
+          }
+        } else if (north) {
+          let bestDiff = threshold + 1;
+          let bestT: number | null = null;
+          for (const t of yTargets) {
+            const diff = Math.abs(y - t);
+            if (diff <= threshold && diff < bestDiff && bottom - t >= MIN_VISUAL_HEIGHT && t >= 0) {
+              bestDiff = diff;
+              bestT = t;
+            }
+          }
+          if (bestT !== null) {
+            y = bestT;
+            height = bottom - y;
+            guidesY.push(bestT);
+          } else if (gridSize > 0) {
+            const gridY = Math.round(y / gridSize) * gridSize;
+            if (Math.abs(gridY - y) <= threshold && bottom - gridY >= MIN_VISUAL_HEIGHT && gridY >= 0) {
+              y = gridY;
+              height = bottom - y;
+            }
+          }
+        }
+        onGuidesChange({ x: guidesX, y: guidesY });
+      } else {
+        onGuidesChange({});
+      }
+
       latest = {
         height: Math.round(height),
         width: Math.round(width),
@@ -221,13 +423,14 @@ const VisualFrame: React.FC<{
       };
       setDraftGeometry(latest);
     };
-    const onMovePointer = (moveEvent: PointerEvent) => apply(moveEvent.clientX, moveEvent.clientY);
+    const onMovePointer = (moveEvent: PointerEvent) => apply(moveEvent.clientX, moveEvent.clientY, moveEvent.altKey);
     const finish = (commitChange: boolean) => {
       window.removeEventListener('pointermove', onMovePointer);
       window.removeEventListener('pointerup', onUp);
       window.removeEventListener('pointercancel', onCancel);
       window.removeEventListener('keydown', onKey);
       setDraftGeometry(null);
+      onGuidesChange({});
       const next = latest;
       const changed = next && (
         next.x !== start.geometry.x || next.y !== start.geometry.y
@@ -238,7 +441,7 @@ const VisualFrame: React.FC<{
       }
     };
     const onUp = (upEvent: PointerEvent) => {
-      apply(upEvent.clientX, upEvent.clientY);
+      apply(upEvent.clientX, upEvent.clientY, upEvent.altKey);
       finish(true);
     };
     const onCancel = () => finish(false);
@@ -258,12 +461,26 @@ const VisualFrame: React.FC<{
     const start = { geometry: visual.geometry, x: event.clientX, y: event.clientY };
     let moved = false;
     let latest: VisualLayoutSpec['geometry'] | null = null;
-    const apply = (clientX: number, clientY: number) => {
+    const apply = (clientX: number, clientY: number, altKey = false) => {
       if (!moved && Math.hypot(clientX - start.x, clientY - start.y) < 4) {return;}
       moved = true;
-      const x = Math.min(Math.max(start.geometry.x + (clientX - start.x) * scaleX, 0), canvasWidth - start.geometry.width);
-      const y = Math.min(Math.max(start.geometry.y + (clientY - start.y) * scaleY, 0), canvasHeight - start.geometry.height);
-      latest = { ...start.geometry, x: Math.round(x), y: Math.round(y) };
+      let rawX = Math.min(Math.max(start.geometry.x + (clientX - start.x) * scaleX, 0), canvasWidth - start.geometry.width);
+      let rawY = Math.min(Math.max(start.geometry.y + (clientY - start.y) * scaleY, 0), canvasHeight - start.geometry.height);
+
+      if (!altKey) {
+        const snap = computeSnap(
+          { x: rawX, y: rawY, width: start.geometry.width, height: start.geometry.height },
+          presentation.visuals.filter((v) => v.id !== visual.id),
+          { width: canvasWidth, height: canvasHeight }
+        );
+        rawX = snap.x;
+        rawY = snap.y;
+        onGuidesChange({ x: snap.guidesX, y: snap.guidesY });
+      } else {
+        onGuidesChange({});
+      }
+
+      latest = { ...start.geometry, x: Math.round(rawX), y: Math.round(rawY) };
       setDraftGeometry(latest);
     };
     const finish = (commitChange: boolean) => {
@@ -272,6 +489,7 @@ const VisualFrame: React.FC<{
       window.removeEventListener('pointercancel', onCancel);
       window.removeEventListener('keydown', onKey);
       setDraftGeometry(null);
+      onGuidesChange({});
       movedRecently.current = moved;
       const next = latest;
       if (commitChange && moved && next
@@ -279,9 +497,9 @@ const VisualFrame: React.FC<{
         onMove({ ...visual, geometry: next }, `Mover ${visual.title}`);
       }
     };
-    const onMovePointer = (moveEvent: PointerEvent) => apply(moveEvent.clientX, moveEvent.clientY);
+    const onMovePointer = (moveEvent: PointerEvent) => apply(moveEvent.clientX, moveEvent.clientY, moveEvent.altKey);
     const onUp = (upEvent: PointerEvent) => {
-      apply(upEvent.clientX, upEvent.clientY);
+      apply(upEvent.clientX, upEvent.clientY, upEvent.altKey);
       finish(true);
     };
     const onCancel = () => finish(false);

@@ -22,3 +22,6 @@ export async function loadAgentConfig(endpoint: string, signal: AbortSignal): Pr
   if (!defaults) {throw new Error('La selección del asistente no es válida.');}
   return { configured: body.configured, default_model: defaults.model, default_thinking: defaults.thinking };
 }
+
+export const CHATBOT_MODELS = ['glm-5.3-flash'] as const;
+export const CHATBOT_THINKING = ['high'] as const;
