@@ -370,6 +370,22 @@ export const InspectorPanel: React.FC<InspectorPanelProps> = ({
                   <input checked={selected.format_settings.show_title} onChange={(event) => patchSelected({ format_settings: { ...selected.format_settings, show_title: event.target.checked } }, 'Mostrar u ocultar título')} type="checkbox" />
                   Mostrar título
                 </label>
+                <label className="dv-check-row">
+                  <input
+                    checked={selected.format_settings.show_data_labels ?? true}
+                    onChange={(event) => patchSelected({ format_settings: { ...selected.format_settings, show_data_labels: event.target.checked } }, 'Mostrar u ocultar etiquetas de datos')}
+                    type="checkbox"
+                  />
+                  Mostrar etiquetas de datos
+                </label>
+                <label className="dv-check-row">
+                  <input
+                    checked={selected.format_settings.show_category_labels ?? true}
+                    onChange={(event) => patchSelected({ format_settings: { ...selected.format_settings, show_category_labels: event.target.checked } }, 'Mostrar u ocultar etiquetas de categorías o leyenda')}
+                    type="checkbox"
+                  />
+                  Mostrar etiquetas de categorías / leyenda
+                </label>
               </section>
             </>
           ) : (

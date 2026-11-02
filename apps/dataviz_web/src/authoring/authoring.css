@@ -522,3 +522,36 @@ summary.dv-sidebar-heading::-webkit-details-marker { display: none; }
   background: #d4e8f7;
   color: #083758;
 }
+
+.dv-undo-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 6px;
+}
+.dv-header-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 28px;
+  border: 1px solid var(--studio-border, #d8e0e7);
+  border-radius: 6px;
+  padding: 0 8px;
+  background: var(--studio-panel, #ffffff);
+  color: #4a6274;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 550;
+  transition: all 0.15s ease;
+}
+.dv-header-icon-btn:hover:not(:disabled) {
+  background: #eef3f7;
+  color: #0b5689;
+  border-color: #b5c7d5;
+}
+.dv-header-icon-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  border-color: transparent;
+  background: transparent;
+}

@@ -31,6 +31,10 @@ export function renderPlanForPresentation(presentation: PresentationSnapshot): R
       data_roles: visual.data_roles,
       geometry: { ...visual.geometry },
       page: 'Canvas',
+      properties: {
+        show_data_labels: visual.format_settings.show_data_labels ?? true,
+        show_category_labels: visual.format_settings.show_category_labels ?? true,
+      },
       ...(visual.custom_spec ? { custom_spec: visual.custom_spec } : {}),
     })),
   };

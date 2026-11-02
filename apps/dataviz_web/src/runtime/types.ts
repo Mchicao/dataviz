@@ -123,6 +123,7 @@ export interface VisualSpec {
    * fail-closed (`parseCustomVisualSpec`); se descarta en caso contrario.
    */
   custom_spec?: CustomVisualSpec | null;
+  properties?: Record<string, unknown>;
 }
 
 /** Canonical interaction spec (mirrors Python `InteractionSpec.to_dict()`). */

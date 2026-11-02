@@ -104,6 +104,8 @@ export const VisualAuthoringEditor: React.FC<VisualAuthoringEditorProps> = ({
   const [doc, setDoc] = useState<Document>(() => (
     remoteMode ? initialDocument : withInitialVisuals(initialDocument, initialVisuals)
   ));
+  const [undoStack, setUndoStack] = useState<Document[]>([]);
+  const [redoStack, setRedoStack] = useState<Document[]>([]);
   const [dataset, setDataset] = useState<LocalDataset | null>(initialDataset);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [proposal, setProposal] = useState<AgentProposal | null>(null);
@@ -426,6 +428,8 @@ export const VisualAuthoringEditor: React.FC<VisualAuthoringEditorProps> = ({
           next,
           request,
         };
+        setUndoStack((prev) => [...prev.slice(-49), doc]);
+        setRedoStack([]);
         setDoc(next);
         setProposal(null);
         setValidationError('');
@@ -447,6 +451,8 @@ export const VisualAuthoringEditor: React.FC<VisualAuthoringEditorProps> = ({
         message,
         presentation,
       });
+      setUndoStack((prev) => [...prev.slice(-49), doc]);
+      setRedoStack([]);
       setDoc(next);
       setProposal(null);
       setValidationError('');
@@ -544,6 +550,8 @@ export const VisualAuthoringEditor: React.FC<VisualAuthoringEditorProps> = ({
     }
     try {
       const next = applyOps(doc, [], { activePageId: effectivePageId, message, presentation_ir: presentationIR });
+      setUndoStack((prev) => [...prev.slice(-49), doc]);
+      setRedoStack([]);
       setDoc(next);
       setProposal(null);
       setValidationError('');
@@ -937,11 +945,76 @@ export const VisualAuthoringEditor: React.FC<VisualAuthoringEditorProps> = ({
 
     // --- Modo local/demo: comportamiento original (aprobación local instantánea) ---
     const next = rollback(doc, version, { message: `Restaurar v${version}` });
+    setUndoStack((prev) => [...prev.slice(-49), doc]);
+    setRedoStack([]);
     setDoc(next);
     setProposal(null);
     setSelectedId(null);
     onDocumentChange?.(next);
   }
+
+  const handleUndo = () => {
+    if (proposal) {
+      setProposal(null);
+      return;
+    }
+    if (undoStack.length > 0) {
+      const prevDoc = undoStack[undoStack.length - 1];
+      setUndoStack((prev) => prev.slice(0, -1));
+      setRedoStack((prev) => [...prev, doc]);
+      setDoc(prevDoc);
+      setProposal(null);
+      setValidationError('');
+      onDocumentChange?.(prevDoc);
+    } else if (doc.versions.length > 1) {
+      const targetVersion = doc.versions[doc.versions.length - 2].number;
+      handleRollback(targetVersion);
+    }
+  };
+
+  const handleRedo = () => {
+    if (redoStack.length > 0) {
+      const nextDoc = redoStack[redoStack.length - 1];
+      setRedoStack((prev) => prev.slice(0, -1));
+      setUndoStack((prev) => [...prev, doc]);
+      setDoc(nextDoc);
+      setProposal(null);
+      setValidationError('');
+      onDocumentChange?.(nextDoc);
+    }
+  };
+
+  useEffect(() => {
+    const onWindowKeyDown = (event: KeyboardEvent) => {
+      const target = event.target;
+      if (
+        target instanceof Element &&
+        target.closest(
+          'input:not([type="checkbox"]):not([type="radio"]):not([type="button"]):not([type="submit"]), textarea, [contenteditable]:not([contenteditable="false"])',
+        )
+      ) {
+        return;
+      }
+      const isCtrlOrMeta = event.ctrlKey || event.metaKey;
+      if (!isCtrlOrMeta || event.altKey) {
+        return;
+      }
+      const key = event.key.toLowerCase();
+      if (key === 'z') {
+        event.preventDefault();
+        if (event.shiftKey) {
+          handleRedo();
+        } else {
+          handleUndo();
+        }
+      } else if (key === 'y') {
+        event.preventDefault();
+        handleRedo();
+      }
+    };
+    window.addEventListener('keydown', onWindowKeyDown);
+    return () => window.removeEventListener('keydown', onWindowKeyDown);
+  }, [doc, undoStack, redoStack, proposal, canAuthor]);
 
   return (
     <main className="dv-authoring-shell" data-testid="authoring-editor-root" id="authoring-editor-root" onKeyDown={handleKeyDown}>
@@ -970,6 +1043,36 @@ export const VisualAuthoringEditor: React.FC<VisualAuthoringEditorProps> = ({
             <b>{doc.versions.length}</b>
           </button>
         </nav>
+        <div className="dv-undo-actions" aria-label="Historial de acciones">
+          <button
+            type="button"
+            className="dv-header-icon-btn"
+            onClick={handleUndo}
+            disabled={undoStack.length === 0 && doc.versions.length <= 1}
+            title="Deshacer última acción (Ctrl + Z)"
+            aria-label="Deshacer última acción (Ctrl + Z)"
+          >
+            <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 14 4 9l5-5" />
+              <path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11" />
+            </svg>
+            <span className="dv-btn-text">Deshacer</span>
+          </button>
+          <button
+            type="button"
+            className="dv-header-icon-btn"
+            onClick={handleRedo}
+            disabled={redoStack.length === 0}
+            title="Rehacer acción (Ctrl + Y)"
+            aria-label="Rehacer acción (Ctrl + Y)"
+          >
+            <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="m15 14 5-5-5-5" />
+              <path d="M20 9H9.5A5.5 5.5 0 0 0 4 14.5v0A5.5 5.5 0 0 0 9.5 20H13" />
+            </svg>
+            <span className="dv-btn-text">Rehacer</span>
+          </button>
+        </div>
         <div className="dv-document-title">
           <span className="dv-breadcrumb">Proyectos /</span>
           <strong>{(head.presentation_ir.title || head.model.name).replaceAll('_', ' ')}</strong>

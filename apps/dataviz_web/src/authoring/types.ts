@@ -863,6 +863,8 @@ export interface VisualFormatSettings {
   background_color: string;
   text_color: string;
   show_title: boolean;
+  show_data_labels?: boolean;
+  show_category_labels?: boolean;
 }
 
 export interface PresentationSnapshot {

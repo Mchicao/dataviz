@@ -88,6 +88,10 @@ export const CartesianVisual: React.FC<CartesianVisualProps> = ({ visual, varian
 
   // Familia barras (PBI barChart / Tableau barras horizontales): horizontal por
   // defecto; sólo es vertical cuando la medida vive explícitamente en y_axis.
+  const properties = (visual as { properties?: Record<string, unknown> }).properties ?? {};
+  const showDataLabels = properties.show_data_labels !== false;
+  const showCategoryLabels = properties.show_category_labels !== false;
+
   const horizontal = (variant === 'bar' || variant === 'stacked_bar' || variant === 'percent_stacked_bar')
     && !measureRole(['y_axis']);
   const labelRole = exactRole(['label']);
@@ -173,7 +177,7 @@ export const CartesianVisual: React.FC<CartesianVisualProps> = ({ visual, varian
       width={frame.width}
     >
       {horizontal
-        ? renderHorizontalBars(points, valRole?.ref ?? '', labelRole?.ref ?? '', variant, selectPoint, frame.width, frame.height, typeScale)
+        ? renderHorizontalBars(points, valRole?.ref ?? '', labelRole?.ref ?? '', variant, selectPoint, frame.width, frame.height, typeScale, showDataLabels, showCategoryLabels)
         : renderVerticalChart(
               points,
               catRole?.ref ?? '',
@@ -184,6 +188,8 @@ export const CartesianVisual: React.FC<CartesianVisualProps> = ({ visual, varian
               frame.width,
               frame.height,
               typeScale,
+              showDataLabels,
+              showCategoryLabels,
             )}
     </ChartFrame>
   );
@@ -295,6 +301,8 @@ function renderHorizontalBars(
   width = FALLBACK_PLOT.width,
   height = FALLBACK_PLOT.height,
   typeScale = 1,
+  showDataLabels = true,
+  showCategoryLabels = true,
 ) {
   if ((variant === 'stacked_bar' || variant === 'percent_stacked_bar')
     && points.some((point) => point.series !== null && String(point.series).trim() !== '')) {
@@ -361,14 +369,16 @@ function renderHorizontalBars(
             style={onPointSelect ? { cursor: 'pointer' } : undefined}
             tabIndex={onPointSelect ? 0 : undefined}
           >
-            <text x={left - 8} y={y + barHeight / 2 + labelFontSize * 0.34} textAnchor="end" fill="var(--dv-axis-text, #6b7784)" fontSize={Math.max(7, labelFontSize)}>
-              <title>{categoryLabel}</title>
-              {truncateLabel(categoryLabel, 18)}
-            </text>
+            {showCategoryLabels && (
+              <text x={left - 8} y={y + barHeight / 2 + labelFontSize * 0.34} textAnchor="end" fill="var(--dv-axis-text, #6b7784)" fontSize={Math.max(7, labelFontSize)}>
+                <title>{categoryLabel}</title>
+                {truncateLabel(categoryLabel, 18)}
+              </text>
+            )}
             <rect className="dv-bar" x={left} y={y} width={barWidth} height={barHeight} fill="var(--dv-accent, #4e79a7)" rx="2">
               <title>{`${categoryLabel}: ${formatAxis(value, valueRef)}${label ? ` (${label})` : ''}`}</title>
             </rect>
-            {label && (
+            {label ? (
               <text
                 x={left + Math.max(4, barWidth - 5)}
                 y={y + barHeight / 2 + 3}
@@ -378,6 +388,16 @@ function renderHorizontalBars(
                 fontWeight="600"
               >
                 {labelRef ? label : ''}
+              </text>
+            ) : showDataLabels && (
+              <text
+                x={left + barWidth + 5}
+                y={y + barHeight / 2 + 3.5}
+                fill="var(--dv-axis-text, #6b7784)"
+                fontSize={Math.max(7, 9.5 * typeScale)}
+                fontWeight="500"
+              >
+                {formatAxis(value, valueRef)}
               </text>
             )}
           </g>
@@ -494,6 +514,8 @@ function renderVerticalChart(
   width = FALLBACK_PLOT.width,
   height = FALLBACK_PLOT.height,
   typeScale = 1,
+  showDataLabels = true,
+  showCategoryLabels = true,
 ) {
   const ordered = variant === 'bar' || variant === 'column' ? orderGroupedPoints(points) : points;
   const ratio = isRatioRef(valueRef);
@@ -662,7 +684,20 @@ function renderVerticalChart(
         {axes}
         {variant === 'area' && <polygon points={`${left},${baseline} ${path} ${xAt(ordered.length - 1)},${baseline}`} fill="var(--dv-accent, #4e79a7)" fillOpacity="0.22" />}
         <polyline points={path} fill="none" stroke="var(--dv-accent, #4e79a7)" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
-        {renderBottomAxisLabels(bottomLabels, xAt, baseline, axisPlan, Math.max(7, 10 * typeScale))}
+        {showCategoryLabels && renderBottomAxisLabels(bottomLabels, xAt, baseline, axisPlan, Math.max(7, 10 * typeScale))}
+        {showDataLabels && ordered.length <= 30 && ordered.map((point, index) => (
+          <text
+            key={`dl-${point.i}`}
+            x={xAt(index)}
+            y={yAt(numericY(point)) - 7}
+            textAnchor="middle"
+            fill="var(--dv-axis-text, #6b7784)"
+            fontSize={Math.max(7, 8.5 * typeScale)}
+            fontWeight="500"
+          >
+            {formatAxis(numericY(point), valueRef)}
+          </text>
+        ))}
         {onPointSelect && ordered.map((point, index) => (
           <circle
             aria-label={`Select ${String(point.x)}`}
@@ -754,11 +789,23 @@ function renderVerticalChart(
             >
               <title>{`${String(point.x)}${point.series === null ? '' : ` / ${String(point.series)}`}: ${formatScalar(value)}${isRatioRef(valueRef) ? ` (${formatAxis(value, valueRef)})` : ''}`}</title>
             </path>
-            {!useSeriesTicks && renderBottomAxisLabel(bottomLabel, index, x, baseline, axisPlan, Math.max(7, 10 * typeScale))}
+            {showDataLabels && barHeight > 12 && (
+              <text
+                x={x}
+                y={Math.max(top + 8, y - 4)}
+                textAnchor="middle"
+                fill="var(--dv-axis-text, #6b7784)"
+                fontSize={Math.max(7, 9 * typeScale)}
+                fontWeight="500"
+              >
+                {formatAxis(value, valueRef)}
+              </text>
+            )}
+            {showCategoryLabels && !useSeriesTicks && renderBottomAxisLabel(bottomLabel, index, x, baseline, axisPlan, Math.max(7, 10 * typeScale))}
           </g>
         );
       })}
-      {useSeriesTicks && renderSeriesLegend(seriesNames, height, Math.max(7, 9.5 * typeScale))}
+      {showCategoryLabels && useSeriesTicks && renderSeriesLegend(seriesNames, height, Math.max(7, 9.5 * typeScale))}
     </g>
   );
 }

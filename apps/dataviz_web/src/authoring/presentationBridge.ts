@@ -132,6 +132,8 @@ export function visualToIR(visual: VisualLayoutSpec): CanonicalVisualPresentatio
       editor_kind: visual.kind,
       editor_name: visual.name,
       editor_show_title: visual.format_settings.show_title,
+      editor_show_data_labels: visual.format_settings.show_data_labels ?? true,
+      editor_show_category_labels: visual.format_settings.show_category_labels ?? true,
       ...(visual.custom_spec ? { custom_visual_spec: visual.custom_spec } : {}),
     },
     style: theme({
@@ -176,6 +178,12 @@ export function visualFromIR(visual: CanonicalVisualPresentation): VisualLayoutS
     background_color: visual.style.background_color,
     show_title: typeof properties.editor_show_title === 'boolean'
       ? properties.editor_show_title
+      : true,
+    show_data_labels: typeof properties.editor_show_data_labels === 'boolean'
+      ? properties.editor_show_data_labels
+      : true,
+    show_category_labels: typeof properties.editor_show_category_labels === 'boolean'
+      ? properties.editor_show_category_labels
       : true,
     text_color: visual.style.text_color,
   };

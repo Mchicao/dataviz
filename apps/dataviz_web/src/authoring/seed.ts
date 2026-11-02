@@ -76,6 +76,8 @@ export function createVisual(
       background_color: '#ffffff',
       text_color: '#172536',
       show_title: true,
+      show_data_labels: true,
+      show_category_labels: true,
     },
     geometry: overrides.geometry ?? {
       x: 24 + (index % 2) * 388,
