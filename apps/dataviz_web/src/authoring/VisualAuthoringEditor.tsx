@@ -558,7 +558,7 @@ export const VisualAuthoringEditor: React.FC<VisualAuthoringEditorProps> = ({
     const startX = event.clientX;
     const startWidth = paneWidths[key];
     const onMove = (moveEvent: PointerEvent) => {
-      const width = Math.min(480, Math.max(190, Math.round(startWidth + (moveEvent.clientX - startX))));
+      const width = Math.min(480, Math.max(190, Math.round(startWidth + (startX - moveEvent.clientX))));
       setPaneWidths((current) => ({ ...current, [key]: width }));
     };
     const onUp = () => {
