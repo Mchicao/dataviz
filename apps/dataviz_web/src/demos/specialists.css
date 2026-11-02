@@ -288,3 +288,93 @@ dialog.specialist-evidence::backdrop { background: #0009; }
   padding-top: 6px;
   margin-top: 2px;
 }
+
+/* Knowledge access cards in welcome area */
+.specialist-welcome-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  background: #f1f5f9;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 8px;
+}
+.specialist-welcome-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.specialist-welcome-desc {
+  max-width: 640px;
+  margin: 6px auto 16px;
+  color: #475569;
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+.specialist-knowledge-box {
+  margin: 12px auto 20px;
+  max-width: 700px;
+  text-align: left;
+}
+.specialist-knowledge-box h4 {
+  margin: 0 0 10px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  text-align: center;
+}
+.specialist-knowledge-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 10px;
+}
+.specialist-source-chip {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 10px 12px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+}
+.specialist-source-chip-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.specialist-source-chip-head strong {
+  font-size: 12.5px;
+  color: #0f172a;
+}
+.specialist-source-chip-head code {
+  margin-left: auto;
+  font-size: 10.5px;
+  background: #f1f5f9;
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: #0d5f96;
+}
+.specialist-source-chip-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 11px;
+  color: #64748b;
+  margin-top: 5px;
+}
+.specialist-source-chip-row span {
+  font-weight: 600;
+  color: #475569;
+}
+.specialist-source-chip-row code {
+  color: #1e293b;
+  font-size: 10.5px;
+}
+.specialist-source-chip-metrics {
+  color: #0d5f96;
+  font-size: 11px;
+}

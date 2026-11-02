@@ -1,3 +1,4 @@
+import { useDemoLang, DEMO_TEXTS } from '../demos/demoLang';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { name } from '@gdp-ts/core';
 import type { Named } from '@gdp-ts/core';
@@ -98,6 +99,8 @@ export const VisualAuthoringEditor: React.FC<VisualAuthoringEditorProps> = ({
   onManageConnections,
   remote,
 }) => {
+  const [lang, setLang] = useDemoLang();
+  const t = DEMO_TEXTS[lang];
   // El modo Studio remoto es la ÚNICA ruta hacia la autoridad durable del
   // servicio; el modo local/demo mantiene todo su comportamiento actual.
   const remoteMode = remote !== undefined;
@@ -1030,20 +1033,20 @@ export const VisualAuthoringEditor: React.FC<VisualAuthoringEditorProps> = ({
             <svg aria-hidden="true" className="dv-rail-glyph" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.7} viewBox="0 0 24 24">
               <rect height="8" rx="1.5" width="7" x="3" y="3" /><rect height="5" rx="1.5" width="7" x="14" y="3" /><rect height="9" rx="1.5" width="7" x="14" y="12" /><rect height="6" rx="1.5" width="7" x="3" y="15" />
             </svg>
-            <span>Canvas</span>
+            <span>{t.canvas}</span>
           </button>
-          <button aria-current={view === 'changes' ? 'page' : undefined} aria-label={`Cambios ${currentDiff.changes.length + presentationDiff.length}`} onClick={() => setView('changes')} type="button">
+          <button aria-current={view === 'changes' ? 'page' : undefined} aria-label={`${t.changes} ${currentDiff.changes.length + presentationDiff.length}`} onClick={() => setView('changes')} type="button">
             <svg aria-hidden="true" className="dv-rail-glyph" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.7} viewBox="0 0 24 24">
               <path d="M12 5v6M9 8h6" /><path d="M9 17h6" />
             </svg>
-            <span>Cambios</span>
+            <span>{t.changes}</span>
             <b>{currentDiff.changes.length + presentationDiff.length}</b>
           </button>
-          <button aria-current={view === 'history' ? 'page' : undefined} aria-label={`Versiones ${doc.versions.length}`} onClick={() => setView('history')} type="button">
+          <button aria-current={view === 'history' ? 'page' : undefined} aria-label={`${t.versions} ${doc.versions.length}`} onClick={() => setView('history')} type="button">
             <svg aria-hidden="true" className="dv-rail-glyph" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.7} viewBox="0 0 24 24">
               <path d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1L3.5 8.4" /><path d="M3.5 3.5v4.9h4.9" /><path d="M12 7.5V12l3 3" />
             </svg>
-            <span>Versiones</span>
+            <span>{t.versions}</span>
             <b>{doc.versions.length}</b>
           </button>
         </nav>
@@ -1053,41 +1056,59 @@ export const VisualAuthoringEditor: React.FC<VisualAuthoringEditorProps> = ({
             className="dv-header-icon-btn"
             onClick={handleUndo}
             disabled={undoStack.length === 0 && doc.versions.length <= 1}
-            title="Deshacer última acción (Ctrl + Z)"
-            aria-label="Deshacer última acción (Ctrl + Z)"
+            title={t.undo_title}
+            aria-label={t.undo_title}
           >
             <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M9 14 4 9l5-5" />
               <path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11" />
             </svg>
-            <span className="dv-btn-text">Deshacer</span>
+            <span className="dv-btn-text">{t.undo}</span>
           </button>
           <button
             type="button"
             className="dv-header-icon-btn"
             onClick={handleRedo}
             disabled={redoStack.length === 0}
-            title="Rehacer acción (Ctrl + Y)"
-            aria-label="Rehacer acción (Ctrl + Y)"
+            title={t.redo_title}
+            aria-label={t.redo_title}
           >
             <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="m15 14 5-5-5-5" />
               <path d="M20 9H9.5A5.5 5.5 0 0 0 4 14.5v0A5.5 5.5 0 0 0 9.5 20H13" />
             </svg>
-            <span className="dv-btn-text">Rehacer</span>
+            <span className="dv-btn-text">{t.redo}</span>
           </button>
         </div>
         <div className="dv-document-title">
-          <span className="dv-breadcrumb">Proyectos /</span>
+          <span className="dv-breadcrumb">{t.projects}</span>
           <strong>{(head.presentation_ir.title || head.model.name).replaceAll('_', ' ')}</strong>
-          <span className="dv-save-state" data-testid={remoteMode ? 'remote-save-state' : undefined}><i /> {remoteMode ? remoteSaveLabel[remoteState] : 'Guardado local'}</span>
+          <span className="dv-save-state" data-testid={remoteMode ? 'remote-save-state' : undefined}><i /> {remoteMode ? remoteSaveLabel[remoteState] : t.saved_locally}</span>
         </div>
         <div className="dv-header-actions">
           <nav className="dv-nav-links" aria-label="Navegación general">
-            <a href="/studio" aria-current="page">Crear dashboards</a>
-            <a href="/dashboard">Ver dashboard</a>
-            <a href="/agents">Agentes</a>
+            <a href="/studio" aria-current="page">{t.create_dashboards}</a>
+            <a href="/dashboard">{t.view_dashboard}</a>
+            <a href="/agents">{t.agents}</a>
           </nav>
+          <div className="demo-lang-toggle" role="group" aria-label={t.switch_lang_aria}>
+            <button
+              type="button"
+              className={lang === 'en' ? 'is-active' : ''}
+              onClick={() => setLang('en')}
+              title="English"
+            >
+              EN
+            </button>
+            <button
+              type="button"
+              className={lang === 'es' ? 'is-active' : ''}
+              onClick={() => setLang('es')}
+              title="Español"
+            >
+              ES
+            </button>
+          </div>
           {(onRequestPublication || remoteMode) && (
             <button className="dv-button-primary" disabled={!canRequestPublish || Boolean(proposal) || datasetMissing || (remoteMode && (remoteState !== 'ready' || requestingPublication))} onClick={handleRequestPublication} type="button">Solicitar publicación v{head.number}</button>
           )}
@@ -1168,7 +1189,7 @@ export const VisualAuthoringEditor: React.FC<VisualAuthoringEditorProps> = ({
               role="button"
               tabIndex={0}
             >
-              <span aria-hidden="true" className="dv-side-strip-label">Visualizaciones</span>
+              <span aria-hidden="true" className="dv-side-strip-label">{t.visualizations}</span>
             </div>
           ) : (
             <InspectorPanel
@@ -1195,7 +1216,7 @@ export const VisualAuthoringEditor: React.FC<VisualAuthoringEditorProps> = ({
               role="button"
               tabIndex={0}
             >
-              <span aria-hidden="true" className="dv-side-strip-label">Filtros</span>
+              <span aria-hidden="true" className="dv-side-strip-label">{t.filters}</span>
             </div>
           ) : (
             <section aria-label="Filtros" className="dv-right-pane dv-pane-filters">
@@ -1212,7 +1233,7 @@ export const VisualAuthoringEditor: React.FC<VisualAuthoringEditorProps> = ({
                 tabIndex={0}
                 title="Minimizar panel de filtros"
               >
-                <span className="dv-pane-title"><span aria-hidden="true" className="dv-pane-icon">▽</span><strong>Filtros</strong></span>
+                <span className="dv-pane-title"><span aria-hidden="true" className="dv-pane-icon">▽</span><strong>{t.filters}</strong></span>
                 <span aria-hidden="true" className="dv-pane-collapse">»</span>
               </div>
               <FiltersPanel
@@ -1237,7 +1258,7 @@ export const VisualAuthoringEditor: React.FC<VisualAuthoringEditorProps> = ({
               role="button"
               tabIndex={0}
             >
-              <span aria-hidden="true" className="dv-side-strip-label">Datos</span>
+              <span aria-hidden="true" className="dv-side-strip-label">{t.data}</span>
             </div>
           ) : (
             <section aria-label="Datos y campos" className="dv-right-pane dv-pane-data">
@@ -1254,7 +1275,7 @@ export const VisualAuthoringEditor: React.FC<VisualAuthoringEditorProps> = ({
                 tabIndex={0}
                 title="Minimizar panel de datos"
               >
-                <span className="dv-pane-title"><span aria-hidden="true" className="dv-pane-icon">⛁</span><strong>Datos</strong></span>
+                <span className="dv-pane-title"><span aria-hidden="true" className="dv-pane-icon">⛁</span><strong>{t.data}</strong></span>
                 <span aria-hidden="true" className="dv-pane-collapse">»</span>
               </div>
               <div className="dv-right-pane-body">
@@ -1302,10 +1323,11 @@ export const VisualAuthoringEditor: React.FC<VisualAuthoringEditorProps> = ({
               role="button"
               tabIndex={0}
             >
-              <span aria-hidden="true" className="dv-side-strip-label">Asistente</span>
+              <span aria-hidden="true" className="dv-side-strip-label">{t.assistant}</span>
             </div>
           ) : (
             <AgentPanel
+              title={t.assistant}
               busy={agentBusy}
               endpoint={agentEndpoint}
               referencedVisual={activePresentation.visuals.find((item) => item.id === referencedVisualId) ?? null}

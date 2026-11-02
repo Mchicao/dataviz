@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { allowedSpecialists, type DemoProfile, type SpecialistAnswer, type SpecialistId } from "./catalog";
 import { BRANCHES, MONTHS } from "./clinicData";
 import { DemoNav } from "./DemoNav";
+import { useDemoLang, DEMO_TEXTS } from "./demoLang";
 import "./demos.css";
 import "./specialists.css";
 
@@ -116,17 +117,19 @@ function getSourcesForAgent(agentId: SpecialistId): SourceGroup[] {
 }
 
 function Evidence({ answer }: { answer: SpecialistAnswer }) {
+  const [lang] = useDemoLang();
+  const t = DEMO_TEXTS[lang];
   const sources = getSourcesForAgent(answer.agent_id);
   return <>
     <div className="specialist-dashboard-source">
-      <span className="specialist-source-label">Dashboard de origen:</span>
+      <span className="specialist-source-label">{t.dashboard_source_label}</span>
       <a className="specialist-dashboard-link" href="/dashboard" target="_blank" rel="noreferrer">
-        📊 Clínica X — Operación y Finanzas ↗
+        {t.dashboard_link_text}
       </a>
     </div>
 
     <div className="specialist-source-groups">
-      <h3>Fuentes agrupadas por base de datos</h3>
+      <h3>{t.db_sources_grouped}</h3>
       {sources.map((src) => (
         <div key={src.name} className="specialist-source-card">
           <div className="specialist-source-card-header">
@@ -137,34 +140,34 @@ function Evidence({ answer }: { answer: SpecialistAnswer }) {
             </div>
           </div>
           <div className="specialist-source-card-tables">
-            <span className="specialist-card-sublabel">Tablas consultadas:</span>
+            <span className="specialist-card-sublabel">{t.tables_consulted}</span>
             <ul>
-              {src.tables.map((t) => <li key={t}><code>{t}</code></li>)}
+              {src.tables.map((tbl) => <li key={tbl}><code>{tbl}</code></li>)}
             </ul>
           </div>
           <div className="specialist-source-card-metrics">
-            <span className="specialist-card-sublabel">Métricas:</span> {src.metrics.join(" · ")}
+            <span className="specialist-card-sublabel">{t.metrics_label}</span> {src.metrics.join(" · ")}
           </div>
         </div>
       ))}
     </div>
 
     <div className="specialist-evidence-metrics-box">
-      <h3>Métricas calculadas</h3>
+      <h3>{t.calculated_metrics}</h3>
       <dl className="specialist-metrics">{answer.evidence.map((metric) => <div key={metric.id}>
         <dt>{metric.label}</dt><dd>{formatValue(metric.value, metric.unit)}</dd>
-        <details><summary>Cómo se calculó</summary><code>{metric.formula}</code></details>
+        <details><summary>{t.how_calculated}</summary><code>{metric.formula}</code></details>
       </div>)}</dl>
     </div>
 
     <section className="specialist-provenance">
-      <h3>Auditoría y alcance</h3>
+      <h3>{t.audit_heading}</h3>
       <dl>
-        <dt>Versión</dt><dd>{answer.source.version}</dd>
-        <dt>Período</dt><dd>{answer.source.period}</dd>
-        <dt>Filtros</dt><dd>{answer.source.branch} · {answer.source.month}</dd>
-        <dt>Registros consultados</dt><dd>{answer.source.rows.toLocaleString("es-CL")}</dd>
-        <dt>Granularidad</dt><dd>{answer.source.grain}</dd>
+        <dt>{t.version}</dt><dd>{answer.source.version}</dd>
+        <dt>{t.period}</dt><dd>{answer.source.period}</dd>
+        <dt>{t.filters_btn}</dt><dd>{answer.source.branch} · {answer.source.month}</dd>
+        <dt>{lang === 'en' ? 'Records queried' : 'Registros consultados'}</dt><dd>{answer.source.rows.toLocaleString(lang === 'en' ? 'en-US' : 'es-CL')}</dd>
+        <dt>{lang === 'en' ? 'Granularity' : 'Granularidad'}</dt><dd>{answer.source.grain}</dd>
       </dl>
       <p>{answer.access_scope}</p>
     </section>
@@ -173,6 +176,8 @@ function Evidence({ answer }: { answer: SpecialistAnswer }) {
 
 /** Conversaciones separadas por agente, perfil y filtros; el servidor aplica el alcance antes de consultar. */
 export default function Specialists() {
+  const [lang] = useDemoLang();
+  const t = DEMO_TEXTS[lang];
   const [profile, setProfile] = useState<DemoProfile>("direction");
   const [selected, setSelected] = useState<SpecialistId>("finance");
   const [search, setSearch] = useState("");
@@ -196,38 +201,39 @@ export default function Specialists() {
   const messages = threads[threadKey] ?? [];
   const evidence = messages.find((message) => message.id === evidenceMessage)?.answer
     ?? [...messages].reverse().find((message) => message.answer)?.answer;
-  const visibleAgents = useMemo(() => agents.filter((item) => item.name.toLocaleLowerCase("es").includes(search.toLocaleLowerCase("es"))), [profile, search]);
+
+  const visibleAgents = useMemo(() => agents.filter((item) => {
+    const nameStr = (item.names?.[lang] ?? item.name).toLowerCase();
+    const q = search.toLowerCase();
+    return nameStr.includes(q);
+  }), [agents, lang, search]);
 
   useEffect(() => {
-    requestRef.current?.abort(); requestRef.current = null;
-    setBusy(false); setPrompt(""); setError(""); setEvidenceMessage(null); setShowEvidence(false);
-  }, [threadKey]);
-  useEffect(() => () => requestRef.current?.abort(), []);
-  useEffect(() => {
-    const onResize = () => setNarrow(window.innerWidth <= 950);
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
+    const handleResize = () => setNarrow(window.innerWidth <= 950);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
-  useEffect(() => {
-    if (narrow && showEvidence && evidenceDialog.current && !evidenceDialog.current.open) {
-      evidenceDialog.current.showModal();
-    }
-  }, [narrow, showEvidence]);
-  useEffect(() => { if (feed.current) {feed.current.scrollTop = feed.current.scrollHeight;} }, [messages.length, busy, threadKey]);
 
-  function openEvidence(messageId?: string) {
-    evidenceReturnFocus.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+  useEffect(() => {
+    feed.current?.scrollTo({ top: feed.current.scrollHeight, behavior: "smooth" });
+  }, [messages, busy]);
+
+  const openEvidence = (messageId?: string) => {
+    evidenceReturnFocus.current = document.activeElement as HTMLElement | null;
     if (messageId) {setEvidenceMessage(messageId);}
     setShowEvidence(true);
-  }
-  function closeEvidence() {
-    evidenceDialog.current?.close();
-    setShowEvidence(false);
-    evidenceReturnFocus.current?.focus();
-  }
+    if (narrow) {evidenceDialog.current?.showModal();}
+  };
 
-  async function send(text = prompt) {
-    const message = text.trim();
+  const closeEvidence = () => {
+    setShowEvidence(false);
+    setEvidenceMessage(null);
+    if (narrow) {evidenceDialog.current?.close();}
+    evidenceReturnFocus.current?.focus();
+  };
+
+  async function send(text?: string) {
+    const message = (text ?? prompt).trim();
     if (!message || message.length > 2000 || busy) {return;}
     const controller = new AbortController();
     requestRef.current = controller;
@@ -247,8 +253,8 @@ export default function Specialists() {
       setThreads((current) => ({ ...current, [threadKey]: [...(current[threadKey] ?? []), { id, role: "assistant", text: body.message, answer: body }].slice(-20) as Message[] }));
       setEvidenceMessage(id);
     } catch (failure) {
-      if (timedOut) {setError("La consulta superó el tiempo disponible.");}
-      else if (!controller.signal.aborted) {setError(failure instanceof Error ? failure.message : "No se pudo consultar el agente.");}
+      if (timedOut) {setError(lang === 'en' ? 'The query timed out.' : 'La consulta superó el tiempo disponible.');}
+      else if (!controller.signal.aborted) {setError(failure instanceof Error ? failure.message : (lang === 'en' ? 'Could not reach the agent.' : 'No se pudo consultar el agente.'));}
     } finally {
       clearTimeout(timer);
       if (requestRef.current === controller) {requestRef.current = null; setBusy(false);}
@@ -256,47 +262,91 @@ export default function Specialists() {
   }
 
   const evidencePanel = <>
-    <header><h2>Fuentes y Linaje</h2><button type="button" aria-label="Cerrar evidencia" onClick={closeEvidence}><Icon name="close" /></button></header>
+    <header><h2>{t.evidence_title}</h2><button type="button" aria-label={t.close_evidence} onClick={closeEvidence}><Icon name="close" /></button></header>
     {evidence && <Evidence answer={evidence} />}
   </>;
+
+  const agentDisplayName = agent.names?.[lang] ?? agent.name;
+  const agentDescription = agent.descriptions?.[lang] ?? agent.description;
+  const agentPrompts = agent.localized_prompts?.[lang] ?? agent.prompts;
 
   return <div className="specialists-app">
     <DemoNav current="agents" />
     <div className="specialists-workspace">
-      <aside className="specialists-directory" aria-label="Especialistas">
-        <h1 className="demo-sr-only">Agentes de Clínica X</h1>
-        <label className="demo-sr-only" htmlFor="agent-search">Buscar agente</label><input id="agent-search" type="search" placeholder="Buscar agente" value={search} onChange={(event) => setSearch(event.target.value)} />
-        <div className="specialists-list">{visibleAgents.map((item) => <button type="button" key={item.id} aria-pressed={item.id === agent.id} onClick={() => setSelected(item.id)}>
-          <span className="specialist-avatar" style={{ backgroundColor: item.color }}>{item.initials}</span>
-          <span><strong>{item.name}</strong><small>{[...(threads[`${profile}/${item.id}/${branch}/${month}`] ?? [])].reverse().find((message) => message.role === "assistant")?.text ?? item.description}</small></span>
-        </button>)}</div>
-        {!visibleAgents.length && <p className="specialist-empty-search">No hay agentes con ese nombre.</p>}
-        <details className="specialist-account"><summary><span className="specialist-avatar">CX</span><span>Clínica X<small>Datos ficticios</small></span><Icon name="chevron" /></summary>
-          <div><label className="specialist-profile">Perfil de demostración<select value={profile} onChange={(event) => setProfile(event.target.value as DemoProfile)}>
-            <option value="direction">Dirección</option><option value="operations">Operaciones</option>
-          </select></label><p>Permisos simulados. Sin autenticación ni fuentes reales.</p></div>
+      <aside className="specialists-directory" aria-label={t.specialists_title}>
+        <h1 className="demo-sr-only">{t.specialists_title}</h1>
+        <label className="demo-sr-only" htmlFor="agent-search">{t.search_placeholder}</label>
+        <input id="agent-search" type="search" placeholder={t.search_placeholder} value={search} onChange={(event) => setSearch(event.target.value)} />
+        <div className="specialists-list">{visibleAgents.map((item) => {
+          const itemDisplayName = item.names?.[lang] ?? item.name;
+          const itemDesc = item.descriptions?.[lang] ?? item.description;
+          return (
+            <button type="button" key={item.id} aria-pressed={item.id === agent.id} onClick={() => setSelected(item.id)}>
+              <span className="specialist-avatar" style={{ backgroundColor: item.color }}>{item.initials}</span>
+              <span><strong>{itemDisplayName}</strong><small>{[...(threads[`${profile}/${item.id}/${branch}/${month}`] ?? [])].reverse().find((message) => message.role === "assistant")?.text ?? itemDesc}</small></span>
+            </button>
+          );
+        })}</div>
+        {!visibleAgents.length && <p className="specialist-empty-search">{t.empty_search}</p>}
+        <details className="specialist-account"><summary><span className="specialist-avatar">CX</span><span>{t.clinic_title}<small>{t.simulated_account}</small></span><Icon name="chevron" /></summary>
+          <div><label className="specialist-profile">{t.demo_profile}<select value={profile} onChange={(event) => setProfile(event.target.value as DemoProfile)}>
+            <option value="direction">{t.profile_direction}</option><option value="operations">{t.profile_operations}</option>
+          </select></label><p>{t.profile_note}</p></div>
         </details>
       </aside>
 
       <main className="specialist-conversation">
         <header className="specialist-thread-heading"><span className="specialist-avatar" style={{ backgroundColor: agent.color }}>{agent.initials}</span>
-          <div><h2>{agent.name}</h2></div>
+          <div><h2>{agentDisplayName}</h2></div>
           <div className="specialist-thread-tools">
             {(branch || month) && <span className="specialist-active-filters">{[branch, month].filter(Boolean).join(" · ")}</span>}
-            <button type="button" aria-label="Filtros" title="Filtros" aria-expanded={showFilters} onClick={() => setShowFilters(!showFilters)}><Icon name="filters" /></button>
-            <button type="button" aria-label="Evidencia" title="Ver fuentes" aria-expanded={showEvidence} disabled={!evidence} onClick={() => showEvidence ? closeEvidence() : openEvidence()}><Icon name="evidence" /></button>
+            <button type="button" aria-label={t.filters_btn} title={t.filters_btn} aria-expanded={showFilters} onClick={() => setShowFilters(!showFilters)}><Icon name="filters" /></button>
+            <button type="button" aria-label={t.sources_btn} title={t.sources_btn} aria-expanded={showEvidence} disabled={!evidence} onClick={() => showEvidence ? closeEvidence() : openEvidence()}><Icon name="evidence" /></button>
           </div>
         </header>
         {showFilters && <div className="specialist-scope-filters">
-          <label>Sede<select value={branch} onChange={(event) => setBranch(event.target.value)}><option value="">Todas</option>{BRANCHES.map((name) => <option key={name}>{name}</option>)}</select></label>
-          <label>Período<select value={month} onChange={(event) => setMonth(event.target.value)}><option value="">Enero-marzo 2026</option>{MONTHS.map((name, index) => <option key={name} value={name}>{["Enero", "Febrero", "Marzo"][index]}</option>)}</select></label>
+          <label>{t.branch_label}<select value={branch} onChange={(event) => setBranch(event.target.value)}><option value="">{t.all_branches}</option>{BRANCHES.map((name) => <option key={name}>{name}</option>)}</select></label>
+          <label>{t.period_label}<select value={month} onChange={(event) => setMonth(event.target.value)}><option value="">{t.all_period}</option>{MONTHS.map((name, index) => <option key={name} value={name}>{t.months[index]}</option>)}</select></label>
         </div>}
-        <div className="specialist-messages" ref={feed} role="log" aria-label={`Conversación con ${agent.name}`} aria-live="polite">
-          {!messages.length && <div className="specialist-welcome"><h3>Pregunta a {agent.name.toLowerCase()}</h3>
-            <div className="specialist-prompts">{agent.prompts.map((item) => <button type="button" key={item} onClick={() => void send(item)} disabled={busy}>{item}</button>)}</div>
-          </div>}
+        <div className="specialist-messages" ref={feed} role="log" aria-label={`Conversación con ${agentDisplayName}`} aria-live="polite">
+          {!messages.length && (
+            <div className="specialist-welcome">
+              <div className="specialist-welcome-badge">
+                <span className="specialist-welcome-dot" style={{ backgroundColor: agent.color }} />
+                <span>{agentDisplayName}</span>
+              </div>
+              <h3>{t.knowledge_heading}</h3>
+              <p className="specialist-welcome-desc">{agent.knowledge_summary?.[lang] ?? agentDescription}</p>
+
+              <div className="specialist-knowledge-box">
+                <div className="specialist-knowledge-grid">
+                  {(agent.sources_summary ?? getSourcesForAgent(agent.id)).map((src) => (
+                    <div key={src.name} className="specialist-source-chip">
+                      <div className="specialist-source-chip-head">
+                        <span>{src.icon}</span>
+                        <strong>{src.name}</strong>
+                        <code>{src.database}</code>
+                      </div>
+                      <div className="specialist-source-chip-row">
+                        <span>{t.tables_consulted}</span>
+                        <code>{src.tables.join(', ')}</code>
+                      </div>
+                      <div className="specialist-source-chip-row specialist-source-chip-metrics">
+                        <span>{t.metrics_label}</span>
+                        <em>{src.metrics.join(' · ')}</em>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="specialist-prompts">{agentPrompts.map((item) => (
+                <button type="button" key={item} onClick={() => void send(item)} disabled={busy}>{item}</button>
+              ))}</div>
+            </div>
+          )}
           {messages.map((message) => <article key={message.id} className={`specialist-message specialist-message-${message.role}`}>
-            <span className="demo-sr-only">{message.role === "user" ? "Tú" : agent.name}</span>
+            <span className="demo-sr-only">{message.role === "user" ? t.you : agentDisplayName}</span>
             <p className="specialist-message-text">{message.text}</p>
 
             {message.answer && message.answer.evidence.length > 0 && (
@@ -314,7 +364,7 @@ export default function Specialists() {
                   <div className="specialist-chat-chart">
                     <div className="specialist-chat-chart-title">
                       <span>📊 {message.answer.series_label}</span>
-                      <small>Visualizador interactivo</small>
+                      <small>{t.chat_visualizer}</small>
                     </div>
                     <div className="specialist-chat-bars">
                       {message.answer.series.map((point) => {
@@ -342,28 +392,28 @@ export default function Specialists() {
             )}
 
             {message.answer && <div className="specialist-answer-meta">
-              <span>{message.answer.mode === "glm" ? "GLM" : message.answer.mode === "local_fallback" ? "GLM (fallback)" : "Cálculo verificado"}</span>
-              <button type="button" onClick={() => openEvidence(message.id)}>Ver fuentes (Redshift / PSQL)</button>
+              <span>{message.answer.mode === "glm" ? "GLM" : message.answer.mode === "local_fallback" ? "GLM (fallback)" : (lang === 'en' ? 'Verified computation' : 'Cálculo verificado')}</span>
+              <button type="button" onClick={() => openEvidence(message.id)}>{lang === 'en' ? 'View sources (Redshift / PSQL)' : 'Ver fuentes (Redshift / PSQL)'}</button>
             </div>}
           </article>)}
-          {busy && <p className="specialist-query-status" role="status">Consultando la evidencia autorizada.</p>}
+          {busy && <p className="specialist-query-status" role="status">{lang === 'en' ? 'Querying authorized evidence...' : 'Consultando la evidencia autorizada.'}</p>}
         </div>
-        {error && <p className="specialist-error" role="alert">{error} Puedes volver a enviar la pregunta.</p>}
+        {error && <p className="specialist-error" role="alert">{error} {lang === 'en' ? 'You can retry the question.' : 'Puedes volver a enviar la pregunta.'}</p>}
         <form className="specialist-composer" onSubmit={(event) => {event.preventDefault(); void send();}}>
-          <label className="demo-sr-only" htmlFor="specialist-prompt">Mensaje para {agent.name}</label>
-          <textarea id="specialist-prompt" placeholder={`Mensaje a ${agent.name.toLowerCase()}.`} maxLength={2000} rows={1} value={prompt}
+          <label className="demo-sr-only" htmlFor="specialist-prompt">{lang === 'en' ? `Message for ${agentDisplayName}` : `Mensaje para ${agentDisplayName}`}</label>
+          <textarea id="specialist-prompt" placeholder={t.input_placeholder} maxLength={2000} rows={1} value={prompt}
             onChange={(event) => setPrompt(event.target.value)} onKeyDown={(event) => {
               if (event.key === "Enter" && !event.shiftKey) {event.preventDefault(); void send();}
             }} />
-          {busy ? <button type="button" onClick={() => {requestRef.current?.abort(); requestRef.current = null; setBusy(false);}}>Cancelar</button>
-            : <button type="submit" aria-label="Enviar pregunta" disabled={!prompt.trim()}><Icon name="send" /></button>}
+          {busy ? <button type="button" onClick={() => {requestRef.current?.abort(); requestRef.current = null; setBusy(false);}}>{lang === 'en' ? 'Cancel' : 'Cancelar'}</button>
+            : <button type="submit" aria-label={t.send} disabled={!prompt.trim()}><Icon name="send" /></button>}
         </form>
       </main>
 
       {showEvidence && (narrow
-        ? <dialog className="specialist-evidence" ref={evidenceDialog} aria-label="Evidencia y permisos"
+        ? <dialog className="specialist-evidence" ref={evidenceDialog} aria-label={t.evidence_title}
           onCancel={(event) => {event.preventDefault(); closeEvidence();}}>{evidencePanel}</dialog>
-        : <aside className="specialist-evidence" aria-label="Evidencia y permisos">{evidencePanel}</aside>)}
+        : <aside className="specialist-evidence" aria-label={t.evidence_title}>{evidencePanel}</aside>)}
     </div>
   </div>;
 }

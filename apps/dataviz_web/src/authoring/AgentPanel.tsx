@@ -5,6 +5,7 @@ import type { AgentSelection } from './agentSettings';
 import { customVisualOpsRequireConfirmation } from '../visuals/custom/spec';
 
 interface AgentPanelProps {
+  title?: string;
   proposal: AgentProposal | null;
   response?: string;
   previewError?: string;
@@ -31,7 +32,7 @@ const PROMPTS = [
 const PREFERENCE_KEY = 'dataviz.agent.selection.v1';
 const LEVEL_LABELS = { high: 'Alto · equilibrado', low: 'Bajo · más rápido', max: 'Máximo · más pausado' };
 
-export const AgentPanel: React.FC<AgentPanelProps> = ({ proposal, response, previewError, endpoint, busy = false, onCancel, onCollapse, onPlan, onApply, onReject, referencedVisual, onClearReferencedVisual, prefillPrompt, onClearPrefill }) => {
+export const AgentPanel: React.FC<AgentPanelProps> = ({ proposal, response, previewError, endpoint, busy = false, onCancel, onCollapse, onPlan, onApply, onReject, referencedVisual, onClearReferencedVisual, prefillPrompt, onClearPrefill, title }) => {
   const [prompt, setPrompt] = useState('');
   useEffect(() => {
     if (prefillPrompt) {
@@ -97,7 +98,7 @@ export const AgentPanel: React.FC<AgentPanelProps> = ({ proposal, response, prev
         tabIndex={0}
         title="Minimizar panel de asistente"
       >
-        <span className="dv-pane-title"><span aria-hidden="true" className="dv-pane-icon">✦</span><strong>Asistente</strong></span>
+        <span className="dv-pane-title"><span aria-hidden="true" className="dv-pane-icon">✦</span><strong>{title ?? "Asistente"}</strong></span>
         <span className="dv-agent-status">{busy
           ? <>Consultando<span aria-hidden="true" className="dv-agent-dots"><i /><i /><i /></span></>
           : loadingConfig ? 'Conectando…' : 'Listo'}</span>

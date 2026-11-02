@@ -5,7 +5,7 @@ import { VisualAuthoringEditor, createAuthoringDocument } from '../src/authoring
 
 afterEach(() => { cleanup(); window.localStorage.clear(); });
 
-it('renders unified top header with DataVIZ brand link and navigation buttons, without DV icon', () => {
+it('renders unified top header with DataVIZ brand link, language toggle, and navigation buttons in English by default, and switches to Spanish on click', () => {
   render(<VisualAuthoringEditor initialDocument={createAuthoringDocument()} />);
   const brand = document.querySelector('.dv-brand-title');
   expect(brand).not.toBeNull();
@@ -15,9 +15,19 @@ it('renders unified top header with DataVIZ brand link and navigation buttons, w
   const dvSquare = [...document.querySelectorAll('.dv-studio-brand span')].find(el => el.textContent === 'DV');
   expect(dvSquare).toBeUndefined();
 
-  // Navigation buttons must exist
+  // Navigation buttons must exist in English by default
   const navLinks = document.querySelector('.dv-nav-links');
   expect(navLinks).not.toBeNull();
+  expect(navLinks?.textContent).toContain('Create dashboards');
+  expect(navLinks?.textContent).toContain('View dashboard');
+  expect(navLinks?.textContent).toContain('Agents');
+
+  // Language toggle should exist
+  const esBtn = [...document.querySelectorAll('.demo-lang-toggle button')].find(b => b.textContent === 'ES');
+  expect(esBtn).not.toBeNull();
+
+  // Switch to Spanish
+  fireEvent.click(esBtn!);
   expect(navLinks?.textContent).toContain('Crear dashboards');
   expect(navLinks?.textContent).toContain('Ver dashboard');
   expect(navLinks?.textContent).toContain('Agentes');
@@ -26,18 +36,18 @@ it('renders unified top header with DataVIZ brand link and navigation buttons, w
 it('minimizes the assistant panel when clicking its header banner and expands back on strip click', () => {
   render(<VisualAuthoringEditor initialDocument={createAuthoringDocument()} />);
 
-  // Initially assistant panel should be visible
+  // Initially assistant panel should be visible (Assistant in English by default)
   const assistantHeading = document.querySelector('.dv-agent-pane .dv-pane-header');
   expect(assistantHeading).not.toBeNull();
-  expect(assistantHeading?.textContent).toContain('Asistente');
+  expect(assistantHeading?.textContent).toContain('Assistant');
 
   // Click on the assistant banner to minimize
   fireEvent.click(assistantHeading!);
 
   // Now the side strip should be visible
-  const strip = document.querySelector('.dv-side-strip[aria-label="Expandir asistente"]');
+  const strip = document.querySelector('.dv-side-strip[aria-label*="assistant"], .dv-side-strip[aria-label*="asistente"]');
   expect(strip).not.toBeNull();
-  expect(strip?.textContent).toContain('Asistente');
+  expect(strip?.textContent).toContain('Assistant');
 
   // And the assistant pane should be collapsed (not rendered)
   expect(document.querySelector('.dv-agent-pane')).toBeNull();

@@ -139,7 +139,7 @@ describe('Undo / Redo (Ctrl+Z / Ctrl+Y) in VisualAuthoringEditor', () => {
     fireEvent.keyDown(window, { key: 'z', ctrlKey: true });
 
     // The undo button is present
-    const undoBtn = container.querySelector('button[title*="Deshacer"]') as HTMLButtonElement | null;
+    const undoBtn = container.querySelector('button[aria-label*="Ctrl + Z"]') as HTMLButtonElement | null;
     expect(undoBtn).toBeTruthy();
   });
 });

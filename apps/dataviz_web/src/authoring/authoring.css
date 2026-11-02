@@ -660,3 +660,34 @@ summary.dv-sidebar-heading::-webkit-details-marker { display: none; }
   color: #0b5689;
   transform: translateX(2px);
 }
+
+.demo-lang-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  background: #eef3f7;
+  border: 1px solid #c2d2e0;
+  border-radius: 6px;
+}
+.demo-lang-toggle button {
+  padding: 4px 9px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: #4a6274;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  line-height: 1.2;
+  transition: all 0.15s ease;
+}
+.demo-lang-toggle button:hover {
+  color: #0b253b;
+  background: #dfe8f0;
+}
+.demo-lang-toggle button.is-active {
+  background: #0d5f96;
+  color: #ffffff;
+  box-shadow: 0 1px 2px rgba(13, 95, 150, 0.25);
+}
