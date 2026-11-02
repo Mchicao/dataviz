@@ -3,6 +3,16 @@ import { allowedSpecialists, type DemoProfile, type SpecialistAnswer, type Speci
 import { BRANCHES, MONTHS } from './clinicData';
 import { DemoNav } from './DemoNav';
 import './demos.css';
+import './specialists.css';
+
+function Icon({ name }: { name: 'evidence' | 'filters' | 'send' | 'chevron' | 'close' }) {
+  return <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+    {name === 'evidence' ? <><path d="M5 3h10l4 4v14H5zM15 3v5h4M8 12h8M8 16h6" /></>
+      : name === 'filters' ? <><path d="M4 6h16M4 12h16M4 18h16" /><path d="M8 4v4M16 10v4M10 16v4" /></>
+      : name === 'send' ? <path d="M12 19V5m-5 5 5-5 5 5" />
+      : name === 'close' ? <path d="m6 6 12 12M18 6 6 18" /> : <path d="m8 10 4 4 4-4" />}
+  </svg>;
+}
 
 interface Message { id: string; role: 'user' | 'assistant'; text: string; answer?: SpecialistAnswer }
 const formatValue = (value: number, unit: string) => `${new Intl.NumberFormat('es-CL', {
@@ -67,7 +77,8 @@ export default function Specialists() {
   const [threads, setThreads] = useState<Record<string, Message[]>>({});
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const [showEvidence, setShowEvidence] = useState(() => typeof window !== 'undefined' && window.innerWidth > 950);
+  const [showEvidence, setShowEvidence] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
   const [narrow, setNarrow] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 950);
   const [evidenceMessage, setEvidenceMessage] = useState<string | null>(null);
   const requestRef = useRef<AbortController | null>(null);
@@ -83,7 +94,7 @@ export default function Specialists() {
   const visibleAgents = useMemo(() => agents.filter((item) => item.name.toLocaleLowerCase('es').includes(search.toLocaleLowerCase('es'))), [profile, search]);
   useEffect(() => {
     requestRef.current?.abort(); requestRef.current = null;
-    setBusy(false); setPrompt(''); setError(''); setEvidenceMessage(null);
+    setBusy(false); setPrompt(''); setError(''); setEvidenceMessage(null); setShowEvidence(false);
   }, [threadKey]);
   useEffect(() => () => requestRef.current?.abort(), []);
   useEffect(() => {
@@ -140,45 +151,49 @@ export default function Specialists() {
   }
 
   const evidencePanel = <>
-    <header><h2>Evidencia</h2><button type="button" aria-label="Cerrar evidencia" onClick={closeEvidence}>×</button></header>
-    {evidence ? <Evidence answer={evidence} /> : <div className="specialist-evidence-empty"><h3>De la respuesta a la fuente</h3><p>Haz una pregunta para ver las métricas, sus cálculos y los registros consultados.</p>
-      <h3>Acceso de {agent.name.toLowerCase()}</h3><p>{agent.scope}</p><p>Snapshot ficticio: enero–marzo de 2026.</p></div>}
+    <header><h2>Fuentes</h2><button type="button" aria-label="Cerrar evidencia" onClick={closeEvidence}><Icon name="close" /></button></header>
+    {evidence && <Evidence answer={evidence} />}
   </>;
 
   return <div className="specialists-app">
     <DemoNav current="agents" />
     <div className="specialists-workspace">
       <aside className="specialists-directory" aria-label="Especialistas">
-        <header><h1>Tu equipo de análisis</h1><p>Especialistas con evidencia de DataVIZ.</p></header>
-        <label className="specialist-profile">Perfil de demostración<select value={profile} onChange={(event) => setProfile(event.target.value as DemoProfile)}>
-          <option value="direction">Dirección</option><option value="operations">Operaciones</option>
-        </select></label>
+        <h1 className="demo-sr-only">Agentes de Clínica X</h1>
         <label className="demo-sr-only" htmlFor="agent-search">Buscar agente</label><input id="agent-search" type="search" placeholder="Buscar agente" value={search} onChange={(event) => setSearch(event.target.value)} />
         <div className="specialists-list">{visibleAgents.map((item) => <button type="button" key={item.id} aria-pressed={item.id === agent.id} onClick={() => setSelected(item.id)}>
           <span className="specialist-avatar" style={{ backgroundColor: item.color }}>{item.initials}</span>
-          <span><strong>{item.name}</strong><small>{item.description}</small></span>
+          <span><strong>{item.name}</strong><small>{[...(threads[`${profile}/${item.id}/${branch}/${month}`] ?? [])].reverse().find((message) => message.role === 'assistant')?.text ?? item.description}</small></span>
         </button>)}</div>
         {!visibleAgents.length && <p className="specialist-empty-search">No hay agentes con ese nombre.</p>}
-        <p className="specialist-demo-note">Clínica X · datos ficticios.<br />Los perfiles simulan permisos; esta demo no autentica usuarios ni conecta fuentes reales.</p>
+        <details className="specialist-account"><summary><span className="specialist-avatar">CX</span><span>Clínica X<small>Datos ficticios</small></span><Icon name="chevron" /></summary>
+          <div><label className="specialist-profile">Perfil de demostración<select value={profile} onChange={(event) => setProfile(event.target.value as DemoProfile)}>
+            <option value="direction">Dirección</option><option value="operations">Operaciones</option>
+          </select></label><p>Permisos simulados. Sin autenticación ni fuentes reales.</p></div>
+        </details>
       </aside>
 
       <main className="specialist-conversation">
         <header className="specialist-thread-heading"><span className="specialist-avatar" style={{ backgroundColor: agent.color }}>{agent.initials}</span>
-          <div><h2>{agent.name}</h2><p>{agent.description}</p></div>
-          <button type="button" className="specialist-evidence-toggle" aria-expanded={showEvidence} onClick={() => showEvidence ? closeEvidence() : openEvidence()}>Evidencia</button>
+          <div><h2>{agent.name}</h2></div>
+          <div className="specialist-thread-tools">
+            {(branch || month) && <span className="specialist-active-filters">{[branch, month].filter(Boolean).join(' · ')}</span>}
+            <button type="button" aria-label="Filtros" title="Filtros" aria-expanded={showFilters} onClick={() => setShowFilters(!showFilters)}><Icon name="filters" /></button>
+            <button type="button" aria-label="Evidencia" title="Ver fuentes" aria-expanded={showEvidence} disabled={!evidence} onClick={() => showEvidence ? closeEvidence() : openEvidence()}><Icon name="evidence" /></button>
+          </div>
         </header>
-        <div className="specialist-scope-filters">
+        {showFilters && <div className="specialist-scope-filters">
           <label>Sede<select value={branch} onChange={(event) => setBranch(event.target.value)}><option value="">Todas</option>{BRANCHES.map((name) => <option key={name}>{name}</option>)}</select></label>
           <label>Período<select value={month} onChange={(event) => setMonth(event.target.value)}><option value="">Enero–marzo 2026</option>{MONTHS.map((name, index) => <option key={name} value={name}>{['Enero', 'Febrero', 'Marzo'][index]}</option>)}</select></label>
-        </div>
+        </div>}
         <div className="specialist-messages" ref={feed} role="log" aria-label={`Conversación con ${agent.name}`} aria-live="polite">
-          {!messages.length && <div className="specialist-welcome"><h3>¿Qué necesitas entender?</h3><p>{agent.scope}</p>
-            <div className="specialist-prompts">{agent.prompts.map((item) => <button type="button" key={item} onClick={() => void send(item)} disabled={busy}>{item}<span aria-hidden="true">→</span></button>)}</div>
+          {!messages.length && <div className="specialist-welcome"><h3>Pregunta a {agent.name.toLowerCase()}</h3>
+            <div className="specialist-prompts">{agent.prompts.map((item) => <button type="button" key={item} onClick={() => void send(item)} disabled={busy}>{item}</button>)}</div>
           </div>}
           {messages.map((message) => <article key={message.id} className={`specialist-message specialist-message-${message.role}`}>
             <span className="demo-sr-only">{message.role === 'user' ? 'Tú' : agent.name}</span><p>{message.text}</p>
-            {message.answer && <div className="specialist-answer-meta"><span>{message.answer.mode === 'glm' ? 'Explicación GLM · cifras calculadas' : message.answer.mode === 'local_fallback' ? 'Cálculo local · GLM no disponible' : 'Cálculo local · sin LLM'}</span>
-              <button type="button" onClick={() => openEvidence(message.id)}>Ver evidencia</button>
+            {message.answer && <div className="specialist-answer-meta"><span>{message.answer.mode === 'glm' ? 'GLM' : message.answer.mode === 'local_fallback' ? 'GLM no disponible' : 'Cálculo local'}</span>
+              <button type="button" onClick={() => openEvidence(message.id)}>Fuentes</button>
             </div>}
           </article>)}
           {busy && <p className="specialist-query-status" role="status">Consultando la evidencia autorizada…</p>}
@@ -186,13 +201,12 @@ export default function Specialists() {
         {error && <p className="specialist-error" role="alert">{error} Puedes volver a enviar la pregunta.</p>}
         <form className="specialist-composer" onSubmit={(event) => {event.preventDefault(); void send();}}>
           <label className="demo-sr-only" htmlFor="specialist-prompt">Mensaje para {agent.name}</label>
-          <textarea id="specialist-prompt" placeholder={`Pregunta a ${agent.name.toLowerCase()}…`} maxLength={2000} rows={2} value={prompt}
+          <textarea id="specialist-prompt" placeholder={`Mensaje a ${agent.name.toLowerCase()}…`} maxLength={2000} rows={1} value={prompt}
             onChange={(event) => setPrompt(event.target.value)} onKeyDown={(event) => {
               if (event.key === 'Enter' && !event.shiftKey) {event.preventDefault(); void send();}
             }} />
           {busy ? <button type="button" onClick={() => {requestRef.current?.abort(); requestRef.current = null; setBusy(false);}}>Cancelar</button>
-            : <button type="submit" aria-label="Enviar pregunta" disabled={!prompt.trim()}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5m-5 5 5-5 5 5" /></svg></button>}
-          <p>Las respuestas muestran datos ficticios y su fuente. Ningún agente ejecuta acciones.</p>
+            : <button type="submit" aria-label="Enviar pregunta" disabled={!prompt.trim()}><Icon name="send" /></button>}
         </form>
       </main>
 

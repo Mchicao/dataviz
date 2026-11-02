@@ -1,0 +1,111 @@
+html[data-demo-route='agents'] { color-scheme: dark; background: #151515; color: #eeeeeb; }
+html[data-demo-route='agents'] body { background: #151515; }
+.specialists-app { height: 100dvh; display: flex; flex-direction: column; overflow: hidden; background: #222; color: #eeeeeb; font: 14px/1.5 Inter, ui-sans-serif, system-ui, sans-serif; }
+.specialists-app * { box-sizing: border-box; }
+.specialists-app button, .specialists-app textarea, .specialists-app input, .specialists-app select { font: inherit; }
+.specialists-app button { cursor: pointer; }
+.specialists-app button:disabled { cursor: default; color: #92928f; }
+.specialists-app svg { width: 20px; height: 20px; display: block; flex-shrink: 0; }
+.specialists-app .demo-nav { height: 44px; flex-shrink: 0; background: #151515; border-color: #353535; }
+.specialists-app .demo-nav a { color: #bdbdb9; }
+.specialists-app .demo-nav a:hover, .specialists-app .demo-nav a[aria-current='page'] { background: #303030; color: #f5f5f2; }
+.specialists-app .demo-nav .demo-brand { color: #eeeeeb; font-size: 15px; }
+.specialists-workspace { display: grid; grid-template-columns: 264px minmax(0, 1fr) auto; grid-template-rows: minmax(0, 1fr); flex: 1; min-height: 0; }
+.specialists-directory { background: #151515; border-right: 1px solid #353535; padding: 18px 12px 12px; display: flex; flex-direction: column; overflow-y: auto; min-height: 0; }
+#agent-search { width: 100%; min-height: 38px; padding: 8px 12px; border: 1px solid #777; border-radius: 10px; background: #252525; color: #eee; margin-bottom: 12px; }
+#agent-search::placeholder, .specialist-composer textarea::placeholder { color: #b6b6b3; opacity: 1; }
+.specialists-list { display: grid; gap: 4px; min-width: 0; }
+.specialists-list button { min-width: 0; }
+.specialists-list button { display: flex; align-items: center; gap: 10px; width: 100%; padding: 11px 9px; border: 0; border-radius: 12px; background: transparent; color: #eeeeeb; text-align: left; }
+.specialists-list button:hover, .specialists-list button[aria-pressed='true'] { background: #2c2c2c; }
+.specialists-list button > span:last-child { min-width: 0; }
+.specialists-list strong { display: block; font-size: 14px; font-weight: 550; }
+.specialists-list small { display: block; margin-top: 3px; font-size: 12px; color: #b6b6b3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.specialist-avatar { width: 36px; height: 36px; flex-shrink: 0; display: inline-flex; justify-content: center; align-items: center; border-radius: 50%; color: #fff; font-size: 12px; font-weight: 650; }
+.specialist-empty-search { color: #b6b6b3; }
+.specialist-account { margin-top: auto; padding: 24px 4px 0; }
+.specialist-account > summary { display: flex; align-items: center; gap: 10px; cursor: pointer; list-style: none; }
+.specialist-account > summary::-webkit-details-marker { display: none; }
+.specialist-account > summary > span:nth-child(2) { flex: 1; }
+.specialist-account .specialist-avatar { background: #303030; color: #eeeeeb; }
+.specialist-account small { display: block; color: #b6b6b3; font-size: 11px; }
+.specialist-account p { color: #b6b6b3; font-size: 12px; margin: 10px 0 0; }
+.specialist-profile { display: grid; gap: 6px; margin-top: 16px; font-size: 12px; }
+.specialist-profile select, .specialist-scope-filters select { min-height: 34px; padding: 5px 8px; border: 1px solid #777; border-radius: 7px; background: #252525; color: #eeeeeb; }
+.specialist-conversation { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+.specialist-thread-heading { display: flex; gap: 10px; align-items: center; min-height: 62px; padding: 12px 24px; border-bottom: 1px solid #353535; }
+.specialist-thread-heading .specialist-avatar { width: 28px; height: 28px; font-size: 10px; }
+.specialist-thread-heading h2 { font-size: 14px; font-weight: 550; margin: 0; }
+.specialist-thread-tools { display: flex; align-items: center; gap: 6px; margin-left: auto; }
+.specialist-thread-tools button, .specialist-evidence header button { border: 0; border-radius: 7px; background: transparent; color: #d4d4d0; padding: 8px; }
+.specialist-thread-tools button:not(:disabled):hover, .specialist-evidence header button:hover { background: #3b3b3b; }
+.specialist-active-filters { color: #b6b6b3; font-size: 11px; max-width: 170px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.specialist-scope-filters { display: flex; flex-wrap: wrap; gap: 16px; padding: 10px 24px; border-bottom: 1px solid #353535; }
+.specialist-scope-filters label { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #b6b6b3; }
+.specialist-messages { flex: 1; min-height: 0; width: 100%; max-width: 960px; align-self: center; overflow-y: auto; padding: 30px 32px; scroll-behavior: smooth; }
+.specialist-welcome { max-width: 470px; margin: clamp(40px, 15vh, 150px) auto 0; }
+.specialist-welcome h3 { margin: 0 0 22px; font-size: 22px; font-weight: 500; letter-spacing: -.025em; }
+.specialist-prompts { display: grid; gap: 4px; }
+.specialist-prompts button { border: 0; border-radius: 8px; padding: 10px 0; color: #bdbdb9; background: transparent; text-align: left; }
+.specialist-prompts button:hover { color: #fff; text-decoration: underline; text-underline-offset: 5px; }
+.specialist-message { max-width: 680px; width: fit-content; margin: 0 0 20px; line-height: 1.6; }
+.specialist-message p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.specialist-message-user { margin-left: auto; background: #ecece8; color: #202020; padding: 10px 16px; border-radius: 22px; }
+.specialist-message-assistant { background: #303030; color: #eeeeeb; padding: 14px 18px; border-radius: 20px; }
+.specialist-answer-meta { margin-top: 10px; display: flex; align-items: center; gap: 12px; color: #bdbdb9; font-size: 11px; }
+.specialist-answer-meta button { border: 0; padding: 0; background: transparent; color: #eeeeeb; font-size: 11px; text-decoration: underline; text-underline-offset: 3px; }
+.specialist-query-status { color: #b6b6b3; font-size: 13px; }
+.specialist-composer { margin: 0 24px 20px; width: calc(100% - 48px); max-width: 896px; align-self: center; border: 1px solid #777; border-radius: 28px; padding: 7px 8px 7px 18px; display: flex; align-items: center; gap: 10px; background: #252525; }
+.specialist-composer textarea { flex: 1; min-width: 0; resize: vertical; min-height: 34px; max-height: 150px; border: 0; background: transparent; padding: 6px 0; line-height: 1.5; color: #eeeeeb; }
+.specialist-composer button { flex-shrink: 0; border: 0; border-radius: 50%; background: #ecece8; color: #202020; min-width: 34px; min-height: 34px; padding: 7px; }
+.specialist-composer button:disabled { background: #3c3c3c; color: #b6b6b3; }
+.specialist-error { margin: 0 24px 10px; color: #ffb8b8; font-size: 13px; }
+.specialist-evidence { width: 300px; border-left: 1px solid #494949; background: #1b1b1b; color: #eeeeeb; overflow-y: auto; padding: 18px 20px 24px; }
+.specialist-evidence > header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+.specialist-evidence h2 { font-size: 14px; font-weight: 550; margin: 0; }
+dialog.specialist-evidence { inset: 44px 0 0 auto; margin: 0; height: calc(100dvh - 44px); max-height: none; max-width: none; border: 0; border-left: 1px solid #777; }
+dialog.specialist-evidence::backdrop { background: #0009; }
+.specialist-evidence h3 { font-size: 13px; margin: 24px 0 8px; }
+.specialist-evidence p { font-size: 12px; line-height: 1.7; color: #bdbdb9; }
+.specialist-metrics { margin: 0; }
+.specialist-metrics > div { padding-bottom: 16px; margin-bottom: 17px; border-bottom: 1px solid #494949; }
+.specialist-metrics dt { font-size: 12px; color: #bdbdb9; }
+.specialist-metrics dd { margin: 5px 0 7px; font-size: 21px; font-weight: 550; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.specialist-metrics details { font-size: 11px; color: #bdbdb9; }
+.specialist-metrics summary { cursor: pointer; }
+.specialist-metrics code { display: block; margin-top: 7px; white-space: normal; overflow-wrap: anywhere; font-size: 10px; }
+.specialist-chart { margin: 24px 0; }
+.specialist-chart figcaption { font-size: 12px; margin-bottom: 12px; }
+.specialist-chart svg { display: block; width: 100%; height: auto; }
+.specialist-chart rect { fill: #b6cec7; }
+.specialist-chart text { fill: #bdbdb9; font-size: 10px; }
+.specialist-chart table { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 12px; font-variant-numeric: tabular-nums; }
+.specialist-chart th, .specialist-chart td { padding: 5px 0; border-bottom: 1px solid #494949; text-align: left; font-weight: 400; }
+.specialist-chart td { text-align: right; }
+.specialist-provenance dl { display: grid; grid-template-columns: 1fr; font-size: 11px; gap: 3px; }
+.specialist-provenance dt { color: #bdbdb9; margin-top: 9px; }
+.specialist-provenance dd { margin: 0; overflow-wrap: anywhere; line-height: 1.5; }
+.specialists-app :focus-visible { outline: 2px solid #eee; outline-offset: 4px; }
+.specialists-app ::selection { background: #b6cec7; color: #151515; }
+@media (max-width: 950px) { .specialists-workspace { grid-template-columns: 226px minmax(0, 1fr); } .specialist-evidence { position: fixed; right: 0; top: 44px; bottom: 0; z-index: 10; width: min(340px, 88vw); } }
+@media (max-width: 650px) {
+  .specialists-workspace { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
+  .specialists-directory { padding: 8px; border-right: 0; border-bottom: 1px solid #353535; overflow: visible; flex-direction: row; align-items: center; gap: 6px; }
+  #agent-search, .specialists-directory > label, .specialists-list small { display: none; }
+  .specialists-list { display: flex; flex: 1; min-width: 0; gap: 3px; }
+  .specialists-list button { padding: 7px 5px; gap: 5px; flex: 1; width: auto; }
+  .specialists-list strong { font-size: 10px; line-height: 1.3; }
+  .specialist-avatar { width: 26px; height: 26px; font-size: 9px; }
+  .specialist-account { position: relative; margin: 0; padding: 0; }
+  .specialist-account > summary > span:nth-child(2), .specialist-account > summary > svg { display: none; }
+  .specialist-account[open] { position: absolute; right: 8px; top: 52px; z-index: 5; width: 240px; padding: 12px; border: 1px solid #777; border-radius: 12px; background: #151515; }
+  .specialist-account[open] > summary > span:nth-child(2) { display: block; }
+  .specialist-thread-heading { min-height: 54px; padding: 8px 16px; }
+  .specialist-active-filters { max-width: 90px; }
+  .specialist-scope-filters { padding: 10px 16px; gap: 8px; }
+  .specialist-messages { padding: 24px 16px; }
+  .specialist-welcome { margin: 35px auto 0; }
+  .specialist-welcome h3 { font-size: 21px; }
+  .specialist-composer { margin: 0 12px 12px; width: calc(100% - 24px); }
+}
+@media (prefers-reduced-motion: reduce) { .specialist-messages { scroll-behavior: auto; } }

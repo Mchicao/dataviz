@@ -5,15 +5,15 @@ export const SPECIALISTS = [
   { id: 'finance' as const, name: 'Finanzas', initials: 'F', color: '#236746',
     description: 'Facturación, cobros y saldo pendiente.', source: 'Facturación ficticia',
     scope: 'Importes agregados por fecha y sede. Sin datos de urgencias ni identidades.',
-    prompts: ['¿Cuánto se ha cobrado?', 'Compara los cobros por sede', '¿Cómo evolucionó el cobro mensual?'] },
+    prompts: ['Cobros del trimestre', 'Cobros por sede', 'Evolución mensual'] },
   { id: 'revenue' as const, name: 'Ciclo de ingresos', initials: 'CI', color: '#225f95',
     description: 'Agenda, atenciones y cancelaciones.', source: 'Operación ambulatoria ficticia',
     scope: 'Capacidad y agenda agregadas por fecha y sede. Sin importes financieros.',
-    prompts: ['Resume la actividad ambulatoria', '¿Cuál es la tasa de cancelación?', 'Compara atenciones por sede'] },
+    prompts: ['Actividad ambulatoria', 'Tasa de cancelación', 'Atenciones por sede'] },
   { id: 'emergency' as const, name: 'Urgencias', initials: 'U', color: '#9a4d25',
     description: 'Demanda, espera e ingresos hospitalarios.', source: 'Operación de urgencias ficticia',
     scope: 'Consultas y espera agregadas por día, sede y prioridad. Sin facturación ni fichas clínicas.',
-    prompts: ['Resume la actividad de urgencias', '¿Cuál es la espera media?', 'Compara consultas por sede'] },
+    prompts: ['Actividad de urgencias', 'Espera media', 'Consultas por sede'] },
 ];
 
 export function allowedSpecialists(profile: DemoProfile) {

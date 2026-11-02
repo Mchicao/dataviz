@@ -99,7 +99,7 @@ export function answerSpecialist(query: Query): SpecialistAnswer {
   const fmt = (item: EvidenceMetric) => `${item.label}: ${new Intl.NumberFormat('es-CL', { maximumFractionDigits: item.unit === 'count' || item.unit === 'CLP' ? 0 : 1 }).format(item.value)}${item.unit === 'count' ? '' : ` ${item.unit}`}`;
   return { agent_id: query.agent_id, profile: query.profile, status: denied ? 'out_of_scope' : 'answered',
     message: denied ? `Esa información no está disponible dentro de mi alcance. Puedo consultar: ${agent.description.toLowerCase()}`
-      : `${evidence.map(fmt).join('. ')}. ${byBranch ? 'La comparación por sede' : 'La evolución mensual'} aparece en la evidencia adjunta.`,
+      : `${evidence.map(fmt).join('. ')}.`,
     mode: 'local', evidence: denied ? [] : evidence, series: denied ? [] : series,
     series_label: `${evidence[0].label} ${byBranch ? 'por sede' : 'por mes'}`,
     source: { name: agent.source, version: DEMO_VERSION, period: DEMO_PERIOD, branch: query.branch || 'Todas las sedes',
