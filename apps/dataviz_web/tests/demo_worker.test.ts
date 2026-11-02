@@ -46,7 +46,7 @@ describe('public assistant boundary', () => {
       ASSETS: assets, ZAI_API_KEY: 'test-only', AI_PER_IP: limiter(), AI_GLOBAL: limiter(),
     }, provider);
     expect(response.status).toBe(200);
-    expect(provider.mock.calls[0][0]).toBe('https://api.z.ai/api/paas/v4/chat/completions');
+    expect(provider.mock.calls[0][0]).toBe('https://api.z.ai/api/coding/paas/v4/chat/completions');
     const result = await response.json();
     expect(result.presentation).toEqual(body.presentation);
     expect(JSON.stringify(result)).not.toContain('test-only');

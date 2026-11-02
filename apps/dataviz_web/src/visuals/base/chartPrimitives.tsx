@@ -222,17 +222,25 @@ export function formatAxis(value: number, ref: string): string {
   return formatScalar(value);
 }
 
-const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const MONTH_LABELS = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
 
-/** Compacta fechas ISO y trimestres a la forma "Jan '26" / "Q1 '26". */
+/** Compacta fechas ISO y trimestres a la forma "15 Ene" / "Ene '26" / "Q1 '26". */
 export function compactCategoryLabel(label: Scalar): Scalar {
   if (typeof label !== 'string') {return label;}
   const quarter = label.match(/^(\d{4})-Q([1-4])$/);
   if (quarter) {return `Q${quarter[2]} '${quarter[1].slice(-2)}`;}
-  const isoDate = label.match(/^(\d{4})-(\d{2})(?:-(\d{2}))?/);
-  if (!isoDate) {return label;}
-  const month = MONTH_LABELS[Number(isoDate[2]) - 1];
-  return month ? `${month} '${isoDate[1].slice(-2)}` : label;
+  const fullDate = label.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (fullDate) {
+    const month = MONTH_LABELS[Number(fullDate[2]) - 1];
+    const day = Number(fullDate[3]);
+    return month ? `${day} ${month}` : label;
+  }
+  const yearMonth = label.match(/^(\d{4})-(\d{2})$/);
+  if (yearMonth) {
+    const month = MONTH_LABELS[Number(yearMonth[2]) - 1];
+    return month ? `${month} '${yearMonth[1].slice(-2)}` : label;
+  }
+  return label;
 }
 
 export const BAR_COLORS = ['#4e79a7', '#f28e2b', '#e15759', '#76b7b2', '#59a14f', '#edc949'];
