@@ -73,6 +73,7 @@ export interface VisualAuthoringEditorProps {
   initialDocument: Document;
   initialVisuals?: VisualLayoutSpec[];
   initialDataset?: LocalDataset | null;
+  initiallyCollapsedPanes?: boolean;
   onDocumentChange?: (doc: Document) => void;
   storageKey?: string;
   permissions?: readonly AuthoringPermission[];
@@ -89,6 +90,7 @@ export const VisualAuthoringEditor: React.FC<VisualAuthoringEditorProps> = ({
   initialDocument,
   initialVisuals = [],
   initialDataset = null,
+  initiallyCollapsedPanes = false,
   onDocumentChange,
   storageKey,
   permissions = ALL_AUTHORING_PERMISSIONS,
@@ -114,9 +116,9 @@ export const VisualAuthoringEditor: React.FC<VisualAuthoringEditorProps> = ({
   const [storageError, setStorageError] = useState('');
   const [datasetStorageError, setDatasetStorageError] = useState('');
   const [importingCsv, setImportingCsv] = useState(false);
-  const [dataPaneCollapsed, setDataPaneCollapsed] = useState(false);
-  const [inspectorCollapsed, setInspectorCollapsed] = useState(false);
-  const [filtersCollapsed, setFiltersCollapsed] = useState(false);
+  const [dataPaneCollapsed, setDataPaneCollapsed] = useState(initiallyCollapsedPanes);
+  const [inspectorCollapsed, setInspectorCollapsed] = useState(initiallyCollapsedPanes);
+  const [filtersCollapsed, setFiltersCollapsed] = useState(initiallyCollapsedPanes);
   const [agentCollapsed, setAgentCollapsed] = useState(false);
   const [pageMenu, setPageMenu] = useState<{ pageId: string; x: number; y: number } | null>(null);
   const pageMenuRef = useRef<HTMLDivElement | null>(null);
@@ -579,6 +581,10 @@ export const VisualAuthoringEditor: React.FC<VisualAuthoringEditorProps> = ({
     const fit = Math.min((clientWidth - 30) / width, (clientHeight - 30) / height) * 100;
     setZoom(Math.round(Math.min(200, Math.max(30, fit))));
   };
+
+  useEffect(() => {
+    if (initiallyCollapsedPanes) {fitToCanvas();}
+  }, []);
 
   useEffect(() => {
     const menu = pageMenu ?? visualMenu;

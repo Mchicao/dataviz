@@ -10,6 +10,7 @@ import type { Document } from './types';
 import type { LocalDataset } from './csv';
 import type { RemoteAuthoringConfig } from './VisualAuthoringEditor';
 import './authoring.css';
+import { CLINIC_STORAGE_KEY, createClinicDemo } from './clinicDemo';
 
 export interface AuthoringEntryProps {
   remote?: RemoteAuthoringConfig;
@@ -61,7 +62,11 @@ export default function AuthoringEntry(props: AuthoringEntryProps = {}): React.J
     };
   }, [props.remote, props.projectId, props.endpoint, props.authToken]);
 
-  const effectiveStorageKey = props.storageKey ?? (remoteConfig ? undefined : AUTHORING_STORAGE_KEY);
+  const clinicDemo = React.useMemo(() => typeof window !== 'undefined'
+    && new URLSearchParams(window.location.search).get('demo') === 'clinic-x'
+    && !remoteConfig ? createClinicDemo() : null, [remoteConfig]);
+  const effectiveStorageKey = props.storageKey ?? (remoteConfig ? undefined
+    : clinicDemo ? CLINIC_STORAGE_KEY : AUTHORING_STORAGE_KEY);
   const [initialDocument] = React.useState<Document>(() => {
     if (props.initialDocument) {return props.initialDocument;}
     if (remoteConfig) {
@@ -69,9 +74,9 @@ export default function AuthoringEntry(props: AuthoringEntryProps = {}): React.J
     }
     try {
       return (effectiveStorageKey ? loadDraft(window.localStorage, effectiveStorageKey) : null)
-        ?? createAuthoringDocument();
+        ?? clinicDemo?.document ?? createAuthoringDocument();
     } catch {
-      return createAuthoringDocument();
+      return clinicDemo?.document ?? createAuthoringDocument();
     }
   });
 
@@ -82,10 +87,10 @@ export default function AuthoringEntry(props: AuthoringEntryProps = {}): React.J
     }
     try {
       return effectiveStorageKey
-        ? loadLocalDataset(window.localStorage, `${effectiveStorageKey}.dataset`)
-        : null;
+        ? loadLocalDataset(window.localStorage, `${effectiveStorageKey}.dataset`) ?? clinicDemo?.dataset ?? null
+        : clinicDemo?.dataset ?? null;
     } catch {
-      return null;
+      return clinicDemo?.dataset ?? null;
     }
   });
 
@@ -94,6 +99,7 @@ export default function AuthoringEntry(props: AuthoringEntryProps = {}): React.J
       agentEndpoint={remoteConfig ? undefined : '/api/assistant'}
       initialDocument={initialDocument}
       initialDataset={initialDataset}
+      initiallyCollapsedPanes={Boolean(clinicDemo)}
       storageKey={effectiveStorageKey}
       remote={remoteConfig}
     />

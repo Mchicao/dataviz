@@ -5,6 +5,7 @@ import { compileLocalRuntimePayload } from './localRuntime';
 import { AUTHORING_STORAGE_KEY } from './seed';
 import { loadLocalDataset } from './datasetStorage';
 import { loadDraft } from './storage';
+import { CLINIC_STORAGE_KEY, createClinicDemo } from './clinicDemo';
 
 export interface LocalViewerEntryProps {
   localVersion?: string;
@@ -21,9 +22,12 @@ function parseLocalVersion(value?: string): number | undefined {
 export default function LocalViewerEntry({ localVersion }: LocalViewerEntryProps): React.JSX.Element {
   const resolved = React.useMemo(() => {
     try {
-      const document = loadDraft(window.localStorage, AUTHORING_STORAGE_KEY);
+      const clinic = new URLSearchParams(window.location.search).get('demo') === 'clinic-x'
+        ? createClinicDemo() : null;
+      const storageKey = clinic ? CLINIC_STORAGE_KEY : AUTHORING_STORAGE_KEY;
+      const document = loadDraft(window.localStorage, storageKey) ?? clinic?.document;
       if (!document) {return { payload: null, error: 'No hay un documento de autoría local disponible.' };}
-      const dataset = loadLocalDataset(window.localStorage, `${AUTHORING_STORAGE_KEY}.dataset`);
+      const dataset = loadLocalDataset(window.localStorage, `${storageKey}.dataset`) ?? clinic?.dataset ?? null;
       const payload = compileLocalRuntimePayload(document, parseLocalVersion(localVersion), dataset);
       return { error: '', payload };
     } catch (error) {

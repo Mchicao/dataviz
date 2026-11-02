@@ -57,6 +57,43 @@ Open `http://localhost:3000`. Without `ZAI_API_KEY` the assistant falls back to 
 - `apps/dataviz_service`: local assistant, migration jobs, governed publication and API.
 - `core/`: the engine — canonical contracts (interaction, semantic and presentation IR), render-plan and PBIP compilers, connectors (Postgres, Excel, JSON, Hyper) and numeric/visual fidelity gates.
 
+## Clinic X public demo
+
+Open the Studio with `?demo=clinic-x` to load an independently generated fictional
+clinic dashboard: 1,080 daily branch/specialty records, seven editable visuals,
+and browser-local draft history. There are no patient identities or client-derived
+inputs. Edits are private to each browser; this demo does not offer shared SaaS
+persistence or remote publication. The metric control creates sums of selected
+numeric fields; it is not a general DAX formula editor.
+
+The Cloudflare Worker serves the Studio and `/api/assistant` on the same origin:
+
+```bash
+cd apps/dataviz_web
+npm ci
+npm run deploy:demo
+```
+
+Authenticate Wrangler with the intended Cloudflare account before deployment.
+For local verification after a build, use `npm run dev:demo` and open
+`http://127.0.0.1:8787/?demo=clinic-x`.
+
+Without a key, the assistant offers deterministic local rules. To enable GLM,
+add a **standard Z.ai API** key as the Worker's `ZAI_API_KEY` secret through the
+Cloudflare dashboard or `npx wrangler secret put ZAI_API_KEY`. Never put this key
+in frontend variables or source files. The public Worker uses the standard
+`https://api.z.ai/api/paas/v4` endpoint, not Coding Plan subscription quota.
+The existing Python assistant is a separate localhost development integration.
+
+The public assistant proposes current-page visual changes for human approval;
+it cannot create formulas, query source rows, publish, or run arbitrary code.
+Requests contain dashboard structure, labels, and metric names, but no dataset
+rows. The Worker enforces JSON/body limits, same-origin browser requests, a
+45-second provider timeout, and native Cloudflare rate limits (3 requests per IP
+and 10 for the shared demo key per minute **per Cloudflare location**). These
+limits are not a global spending cap; configure an API-provider budget before
+enabling the key. Hosting allowances and model usage are separate.
+
 ## Project status
 
 DataVIZ is under active development as a SaaS product. This repository contains the local authoring and consumption vertical. No license granted: all rights reserved.

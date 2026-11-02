@@ -6,7 +6,7 @@ import { resolve } from 'node:path';
 export default defineConfig({
   base: './',
   build: {
-    emptyOutDir: false,
+    emptyOutDir: true,
     outDir: resolve(import.meta.dirname, 'dist/studio'),
     rollupOptions: {
       output: {

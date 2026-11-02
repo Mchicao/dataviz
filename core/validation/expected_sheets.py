@@ -1,47 +1,9 @@
 """
-Lista maestra de hojas esperadas en la migración Tableau -> Power BI.
-Usada para validar que todas las páginas críticas se migraron correctamente.
+Utilidades genéricas de comparación de nombres de hojas.
+Cada corpus público debe declarar sus propias hojas esperadas.
 """
 
-HOJAS_ESPERADAS = [
-    "1.0 AR | Resumen",
-    "1.1 AR | Bruto",
-    "1.2 AR | Neto",
-    "1.3 AR | Contable",
-    "2. AR | Pacientes Hospitalizados",
-    "3. AR | Pacientes Pendientes Cierre",
-    "4. AR | Pendiente Envio Isapre",
-    "5. AR | Cuenta Devueltas",
-    "6. AR | Pendiente Bonificacion",
-    "7. AR | Saldos Anticipos -Abonos",
-    "8. AR | Pendiente Digitación",
-    "9. AR | Documentos por Facturar",
-    "10. AR | Seguros Complementarios",
-    "11. AR | Cobro Paciente",
-    "12. AR | Ejecución de Garantía",
-    "13. AR | Pre-Judicial",
-    "14. AR | Judicial",
-    "15. AR | Otras Carteras",
-    "16. AR | Facturas por Cobrar",
-    "17. AR | Deudores Comerciales",
-    "18. AR | Provisiones",
-    "19. AR | Convenios de pago y cheques a fecha",
-    "20. AR | Pendiente regularización",
-    "21. AR | Stock Cuentas Puente",
-    "22. AR | Presupuestos",
-    "23. AR | Garante I",
-    "23. AR | Garante II",
-    "23. AR | Garante III",
-    "24. AR | Prefacturas sin Hoja de Ruta",
-    "25. AR | Otras clases de documentos",
-    "26. Descarga Datos",
-    "27 AR | Resumen Post-Cierre",
-    "27. AR | Ajuste Post-Cierre AR Neto",
-    "27 AR | Ajuste Post-Cierre Contable",
-    "28. AR | Pendiente Compañía de Salud UC CHRISTUS",
-    "29. Credito y Boletas por cobrar",
-    "30. Cuenta Paciente Ambulatoria",
-]
+HOJAS_ESPERADAS: list[str] = []
 
 
 def normalizar(nombre: str) -> str:

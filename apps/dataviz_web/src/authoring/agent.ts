@@ -41,6 +41,9 @@ const COMBINED_CUSTOM_SPEC: CustomVisualSpec = {
 export function planAgentProposal(document: Document, prompt: string): AgentProposal {
   const head = getHeadVersion(document);
   const normalized = normalize(prompt);
+  if (!head.model.metrics.some((metric) => metric.name === 'Sales')) {
+    return planDatasetProposal(document, prompt, normalized);
+  }
   const semanticOps: Operation[] = [];
   const visualOps: VisualOperation[] = [];
   const rationale: string[] = [];
@@ -184,6 +187,51 @@ export function planAgentProposal(document: Document, prompt: string): AgentProp
     visual_ops: visualOps,
     warnings,
   };
+}
+
+/** Propone ediciones locales con referencias del documento, sin asumir un modelo de ventas. */
+function planDatasetProposal(document: Document, prompt: string, normalized: string): AgentProposal {
+  const head = getHeadVersion(document);
+  const fields = head.model.entities.flatMap((entity) => entity.fields);
+  const metricRef = head.presentation.visuals.find((visual) => visual.data_roles.value?.startsWith('measure:'))?.data_roles.value
+    ?? (head.model.metrics[0] ? `measure:${head.model.metrics[0].name}` : undefined);
+  const category = fields.find((field) => field.data_type === 'string')?.name;
+  const date = fields.find((field) => field.data_type === 'date' || field.data_type === 'datetime')?.name;
+  const operations: VisualOperation[] = [];
+  let summary = 'Puedo proponer una tendencia, comparar categorías, mejorar el contraste u ordenar los visuales. Los cambios requieren tu aprobación.';
+  if (contains(normalized, ['orden', 'layout', 'aline', 'simplif'])) {
+    const rows = Math.max(1, Math.ceil(head.presentation.visuals.length / 2));
+    const width = (head.presentation.canvas.width - 72) / 2;
+    const height = (head.presentation.canvas.height - 24 * (rows + 1)) / rows;
+    if (height >= 100) {
+      head.presentation.visuals.forEach((visual, index) => operations.push(updateVisual({
+        ...visual, geometry: { x: 24 + index % 2 * (width + 24),
+          y: 24 + Math.floor(index / 2) * (height + 24), width, height },
+      })));
+      summary = 'Propongo ordenar los visuales dentro del canvas.';
+    } else {summary = 'Hay demasiados visuales para ordenarlos con un tamaño legible. Elimina algunos o usa otra página.';}
+  } else if (contains(normalized, ['color', 'contraste', 'accesib'])) {
+    head.presentation.visuals.forEach((visual) => operations.push(updateVisual({ ...visual,
+      format_settings: { ...visual.format_settings, accent_color: '#0b6bcb', background_color: '#ffffff', text_color: '#102a43' },
+    })));
+    summary = 'Propongo mejorar el contraste de los visuales.';
+  } else if (metricRef && contains(normalized, ['tendencia', 'trend', 'compar', 'barra', 'bar'])) {
+    const trend = contains(normalized, ['tendencia', 'trend']);
+    const field = trend ? date : category;
+    const existing = head.presentation.visuals.find((visual) => visual.kind === (trend ? 'line' : 'bar'));
+    if (field && existing) {
+      operations.push(updateVisual({ ...existing, data_roles: { category: `field:${field}`, value: metricRef },
+        title: `${metricRef.slice('measure:'.length).replace(/^Sum_/, '')} por ${field}` }));
+      summary = 'Propongo actualizar el gráfico con campos y métricas del documento.';
+    } else {summary = 'Agrega un gráfico y los campos necesarios desde el inspector para poder proponer esta edición.';}
+  }
+  const visualOps = operations.filter((operation) => !jsonEqual(
+    head.presentation.visuals.find((visual) => visual.id === operation.visual_id), operation.payload,
+  ));
+  return { base_version: head.number, prompt, proposal_id: `proposal-v${head.number}-${hash(normalized)}`,
+    rationale: [summary], semantic_ops: [], summary, visual_ops: visualOps,
+    visual_changes: previewVisualOperations(head.presentation, visualOps),
+    warnings: ['Reglas locales: no se consultó un modelo de IA.', 'Aplicar guarda un borrador; no publica.'] };
 }
 
 function addIfMissing(

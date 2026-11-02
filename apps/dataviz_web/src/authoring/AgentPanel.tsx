@@ -18,9 +18,9 @@ interface AgentPanelProps {
 }
 
 const PROMPTS = [
-  'Diseña un resumen ejecutivo',
-  'Muestra la tendencia mensual de ventas',
-  'Compara ventas por región',
+  'Muestra una tendencia temporal',
+  'Compara categorías',
+  'Mejora el contraste',
   'Ordena y simplifica el layout',
 ];
 
@@ -147,7 +147,7 @@ export const AgentPanel: React.FC<AgentPanelProps> = ({ proposal, response, prev
                     submit();
                   }
                 }}
-                placeholder="Ej.: crea un resumen ejecutivo con ventas, utilidad y tendencia mensual"
+                placeholder="Ej.: compara categorías o cambia el título de un gráfico"
                 rows={3}
                 value={prompt}
               />

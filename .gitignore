@@ -10,6 +10,7 @@ __pycache__/
 .venv/
 .pytest_cache/
 .cache/
+.wrangler/
 *.egg-info/
 
 # Entorno y secretos
