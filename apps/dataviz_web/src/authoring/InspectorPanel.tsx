@@ -286,10 +286,22 @@ export const InspectorPanel: React.FC<InspectorPanelProps> = ({
 
   return (
     <aside className="dv-inspector" aria-label="Propiedades y modelo">
-      <div className="dv-inspector-head">
+      <div
+        className="dv-inspector-head dv-clickable-pane-header"
+        onClick={onCollapse}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            onCollapse?.();
+          }
+        }}
+        role="button"
+        tabIndex={0}
+        title="Minimizar panel de visualizaciones"
+      >
         <span className="dv-pane-title"><span aria-hidden="true" className="dv-pane-icon">▤</span><strong>Visualizaciones</strong></span>
         {onCollapse && (
-          <button aria-label="Minimizar visualizaciones" className="dv-pane-collapse" onClick={onCollapse} title="Minimizar panel" type="button">»</button>
+          <span aria-hidden="true" className="dv-pane-collapse">»</span>
         )}
       </div>
       <div className="dv-inspector-tabs" role="tablist" aria-label="Inspector">

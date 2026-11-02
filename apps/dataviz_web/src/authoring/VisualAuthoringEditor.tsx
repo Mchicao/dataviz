@@ -132,7 +132,8 @@ export const VisualAuthoringEditor: React.FC<VisualAuthoringEditorProps> = ({
   const [paneWidths, setPaneWidths] = useState({ agent: 240, data: 240, filters: 240, visual: 280 });
   const canvasViewportRef = useRef<HTMLDivElement | null>(null);
   const [renamingPage, setRenamingPage] = useState<{ id: string; value: string } | null>(null);
-  const canConsume = hasAuthoringPermission(permissions, 'consume');
+  const _canConsume = hasAuthoringPermission(permissions, 'consume');
+  void _canConsume;
   const canAuthor = hasAuthoringPermission(permissions, 'author');
   const canRequestPublish = hasAuthoringPermission(permissions, 'request_publish');
   const canRevert = hasAuthoringPermission(permissions, 'revert');
@@ -146,7 +147,8 @@ export const VisualAuthoringEditor: React.FC<VisualAuthoringEditorProps> = ({
   // es la ÚNICA puerta de entrada para mutaciones (commit / rollback).
   // ---------------------------------------------------------------------------
   const [remoteHead, setRemoteHead] = useState<{ version_number: number; checksum: string } | null>(null);
-  const [remoteVersionId, setRemoteVersionId] = useState<string | null>(null);
+  const [_remoteVersionId, setRemoteVersionId] = useState<string | null>(null);
+  void _remoteVersionId;
   const [remoteState, setRemoteState] = useState<RemoteSaveState>(remoteMode ? 'loading' : 'ready');
   const [remoteError, setRemoteError] = useState('');
   const [remoteNotice, setRemoteNotice] = useState('');
@@ -1079,14 +1081,10 @@ export const VisualAuthoringEditor: React.FC<VisualAuthoringEditorProps> = ({
           <span className="dv-save-state" data-testid={remoteMode ? 'remote-save-state' : undefined}><i /> {remoteMode ? remoteSaveLabel[remoteState] : 'Guardado local'}</span>
         </div>
         <div className="dv-header-actions">
-          {(onRequestPublication || remoteMode)
-            ? <button className="dv-button-primary" disabled={!canRequestPublish || Boolean(proposal) || datasetMissing || (remoteMode && (remoteState !== 'ready' || requestingPublication))} onClick={handleRequestPublication} type="button">Solicitar publicación v{head.number}</button>
-            : <details className="dv-publication-help">
-                <summary>Publicación no disponible</summary>
-                <p>Este borrador se guarda en tu navegador. Para compartirlo con otras personas, abre un proyecto conectado al servicio y solicita su publicación. «Vista» permite explorarlo aquí.</p>
-              </details>}
+          {(onRequestPublication || remoteMode) && (
+            <button className="dv-button-primary" disabled={!canRequestPublish || Boolean(proposal) || datasetMissing || (remoteMode && (remoteState !== 'ready' || requestingPublication))} onClick={handleRequestPublication} type="button">Solicitar publicación v{head.number}</button>
+          )}
           {onManageConnections && <button disabled={!canManageConnections} onClick={onManageConnections} type="button">Conexiones</button>}
-          {canConsume ? <a className="dv-view-link" href={viewerHref(head.number, remote, { publishedVersion: remotePublished, versionId: remoteVersionId, versionNumber: remoteHead?.version_number })} title="Abrir runtime de consumo">Vista</a> : <span aria-disabled="true" className="dv-view-link">Vista</span>}
         </div>
       </header>
 
@@ -1194,9 +1192,21 @@ export const VisualAuthoringEditor: React.FC<VisualAuthoringEditorProps> = ({
             </div>
           ) : (
             <section aria-label="Filtros" className="dv-right-pane dv-pane-filters">
-              <div className="dv-pane-header">
+              <div
+                className="dv-pane-header dv-clickable-pane-header"
+                onClick={() => setFiltersCollapsed(true)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    setFiltersCollapsed(true);
+                  }
+                }}
+                role="button"
+                tabIndex={0}
+                title="Minimizar panel de filtros"
+              >
                 <span className="dv-pane-title"><span aria-hidden="true" className="dv-pane-icon">▽</span><strong>Filtros</strong></span>
-                <button aria-label="Minimizar filtros" className="dv-pane-collapse" onClick={() => setFiltersCollapsed(true)} title="Minimizar panel" type="button">»</button>
+                <span aria-hidden="true" className="dv-pane-collapse">»</span>
               </div>
               <FiltersPanel
                 activePageId={effectivePageId}
@@ -1224,9 +1234,21 @@ export const VisualAuthoringEditor: React.FC<VisualAuthoringEditorProps> = ({
             </div>
           ) : (
             <section aria-label="Datos y campos" className="dv-right-pane dv-pane-data">
-              <div className="dv-pane-header">
+              <div
+                className="dv-pane-header dv-clickable-pane-header"
+                onClick={() => setDataPaneCollapsed(true)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    setDataPaneCollapsed(true);
+                  }
+                }}
+                role="button"
+                tabIndex={0}
+                title="Minimizar panel de datos"
+              >
                 <span className="dv-pane-title"><span aria-hidden="true" className="dv-pane-icon">⛁</span><strong>Datos</strong></span>
-                <button aria-label="Minimizar datos" className="dv-pane-collapse" onClick={() => setDataPaneCollapsed(true)} title="Minimizar panel" type="button">»</button>
+                <span aria-hidden="true" className="dv-pane-collapse">»</span>
               </div>
               <div className="dv-right-pane-body">
                 <div className="dv-sidebar-section">
@@ -1538,7 +1560,7 @@ function focusVisual(id: string): void {
   window.setTimeout(() => document.getElementById(`dv-visual-${id}`)?.focus(), 0);
 }
 
-function viewerHref(
+export function viewerHref(
   headNumber: number,
   remote?: RemoteAuthoringConfig,
   remoteDurable?: {
